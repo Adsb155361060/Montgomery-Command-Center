@@ -1,0 +1,78 @@
+﻿X,Y,OBJECTID,KIOSK_ID,PARKMOBILE_ZONE,BLOCK,SPACES,NOTES
+507962.119306497,683863.188444406,1,K-01,36082,300 Blk Tallapoosa St_South Side,16,not placed
+507889.972797245,683911.47115624,2,K-02,36078,300 Blk Tallapoosa St_North side,16,not placed
+508143.825635996,684115.922190905,3,K-03a,36078,200 Blk Tallapoosa St_North side,16,Kiosk located near space 8
+508570.240793664,684363.767495736,4,K-04a,36081,100 Blk Tallapoosa St_South side,8,Kiosk located near space 6
+508607.375233829,684472.649167739,5,K-05a,36079,100 Blk Tallapoosa St_North side,9,Kiosk located near space 5
+508902.727333412,684631.759741902,6,K-06,36080,99 Blk Tallapoosa St_South side,9,Kiosk located near space 5
+509057.017379161,684754.627606407,7,K-07,36080,99 Blk Tallapoosa St_South side,11,Kiosk located near space 5
+509505.384920746,684896.429488152,8,K-08,N/A,99 Blk Columbus St_South side,12,Kiosk located near space 6
+509916.690528579,684906.500662237,9,K-09,N/A,100 Blk Columbus St_South side,10,Kiosk located near space 5
+510326.384919163,684916.168949991,10,K-10,N/A,200 Blk Columbus St_South side,10,Kiosk located near space 5
+508966.973267913,684497.17700582,11,K-11,36096,99 Blk W Jefferson St_South side,8,Kiosk located near space 4
+508947.636692412,684548.225460157,12,K-12,36096,99 Blk W Jefferson St_North side,7,Kiosk located near space 5
+509138.424368579,684554.928858824,13,K-13,36096,99 Blk W Jefferson St_North side,16,Kiosk located near space 8
+508307.723930247,683465.118046321,14,K-14,36084,300 Blk Bibb St_North side,8,Kiosk located near space 4
+509648.415802661,683724.455126069,15,K-16,36064,99 Blk Monroe St_North side,4,Kiosk located near space 2
+509852.090264078,683658.540231653,16,K-17a,36065,100 Blk Monroe St_South side,6,Kiosk located in eastern part of block
+509963.968321163,683735.830431409,17,K-18,36064,100 Blk Monroe St_North side,8,Kiosk located near space 4
+511408.453949247,683743.408828326,18,K-19a,36012,500 Blk Monroe St_South side,8,Kiosk located near space 4
+511509.794953912,683748.444579408,19,K-19b,36012,500 Blk Monroe St_South side,9,Kiosk located near space 4
+511805.070938163,683771.151883073,20,K-20,36012,600 Monroe St_South side,9,"Parallel spaces; kiosk located near space 4"
+511073.116037246,683354.512624487,24,K-21,36018,400 Dexter Ave_North side,9,Kiosk located near space 3
+511067.701677997,683264.017398655,25,K-22a,36017,400 Blk Dexter Ave_South side,10,Kiosk located near space 5
+511185.655182246,683268.12631432,26,K-22b,36017,400 Blk Dexter Ave_South side,10,Kiosk located near space 5
+510805.368541244,683340.638636492,27,K-23,36058,300 Blk Dexter Ave_North side,8,Kiosk located near space 4
+510673.234947246,683335.401442237,28,K-24,36058,300 Blk Dexter Ave_North side,8,Kiosk located near space 4
+510459.323957745,683325.33026816,29,K-25,36058,200 Blk Dexter Ave_North side,6,Kiosk located near space 3
+510278.043152329,683317.273525737,30,K-26,36058,200 Blk Dexter Ave_North side,4,Kiosk located near space 2
+510289.725871745,683222.201865487,31,K-27,36059,200 Blk Dexter Ave_South side,12,Kiosk located near space 6
+510452.072659913,683229.856049657,32,K-28,36059,200 Blk Dexter Ave_South side,12,Kiosk located near space 6
+510047.615463577,683310.425114237,33,K-29,36060,100 Blk Dexter Ave_North side,13,Kiosk located near space 7
+509902.590819247,683303.173816405,34,K-30,36060,100 Blk Dexter Ave_North side,13,Kiosk located near space 7
+509935.624217745,683208.505042486,36,K-31,36061,100 Blk Dexter Ave_South side,12,Kiosk located near space 6
+509641.546721913,683292.296869658,37,K-32,36063,99 Blk Dexter Ave_North side,9,Kiosk located near space 6
+509460.185536079,683283.611519575,38,K-33,36063,99 Blk Dexter Ave_North side,10,Kiosk located near space 5
+509516.74152533,683186.506398819,39,K-34,36062,99 Blk Dexter Ave_South side,10,Kiosk located near space 6
+509683.921965245,683191.957831487,40,K-35,36062,99 Blk Dexter Ave_South side,9,Kiosk located near space 5
+509272.513011161,683315.526153907,41,K-36,36063,Court Square,10,Kiosk located near space 5
+509118.41653458,683471.439884074,42,K-37,36070,99 Blk Commerce St_East side,10,Kiosk located near space 5
+509036.643404163,683572.111270659,43,K-38,36070,99 Blk Commerce St_East side,8,Kiosk located near space 4
+508930.156740494,683705.855753824,44,K-39,36070,99 Blk Commerce St_East side,9,"Spaces split by 6 reserved spaces; kiosk located near 60 Commerce St"
+508681.203498244,684004.59957891,45,K-40a,36071,100 Blk Commerce St_East side,7,"Space 7 separate from 1-6; kiosk located near Alley entrance"
+508523.858996663,684205.67004291,46,K-40b,36071,100 Blk Commerce St_East side,8,Kiosk located near space 4
+508373.374061413,684410.294961736,47,K-41,36072,200 Blk Commerce St_East side,10,Kiosk located near space 5
+508195.436097078,684631.263679907,48,K-42,36072,200 Blk Commerce St_East side,4,"Parallel spaces; kiosk located near 250 Commerce St entrance"
+508256.60953116,684405.643068157,49,K-43,36073,200 Blk Commerce St_West side,12,Kiosk located near space 5
+508456.600600995,684151.427369237,50,K-44,36074,100 Blk Commerce St_West side,8,Kiosk located near space 4
+508552.547587577,684017.683214158,51,K-45,36074,100 Blk Commerce St_West side,6,Kiosk located near space 4
+508660.124472164,683894.478408076,52,K-46,36074,100 Blk Commerce St_West side,10,Kiosk located near space 5
+508825.124142163,683687.320357822,53,K-47,36075,99 Blk Commerce St_West side,6,Kiosk located near space 3
+508971.225227911,683504.87584082,54,K-48,36075,99 Blk Commerce St_West side,6,Kiosk located near space 4
+509054.451767497,683403.840937905,55,K-49,36075,99 Blk Commerce St_West side,8,Kiosk located near space 4
+509347.835038997,682967.718450576,56,K-50,36054,99 Blk S Court St_East side,9,"Parallel spaces; kiosk located near space 5"
+509797.972262081,683832.649135403,57,K-51,36052,100 Blk N Perry St_East side,6,not placed
+509733.417273078,683939.908107236,58,K-53,36053,100 Blk N Perry St_West side,5,"Parallel spaces; kiosk located near space 2"
+509792.861379914,683976.319779821,59,K-52,36052,100 Blk N Perry St_East side,6,"Parallel spaces; kiosk located near space 3"
+509736.824418496,683842.802658409,60,K-54,36053,100 Blk N Perry St_West side,5,"Parallel spaces; kiosk located near space 3"
+509777.710819662,682951.818219908,61,k-55,36051,99 Blk S Perry St_West side,6,"Parallel spaces; kiosk located near space 3"
+509770.896528829,683106.846125074,62,K-56,36051,99 Blk S Perry St_West side,5,"Parallel spaces; kiosk located near space 3"
+509838.472837247,682891.624114573,63,K-57,36050,99 Blk S Perry St_East side,3,not placed
+509828.251072913,683118.771298073,64,K-58,36050,99 Blk S Perry St_East side,7,"Parallel spaces; kiosk located near space 5"
+509760.107180327,683416.90160732,65,K-59,36051,99 Blk N Perry St_West side,8,"Parallel spaces; kiosk located near space 4"
+509333.07063283,683847.913212486,66,K-60,36055,99 Blk Coosa St_East side,8,"Parallel spaces; kiosk located near space 6"
+509176.906903163,683929.686342902,67,K-61,36068,99 Blk Coosa St_West side,5,Kiosk located near space 3
+509299.566434745,683773.522613242,68,K-62,36068,99 Blk Coosa St_West side,8,Kiosk located near space 4
+508802.954567079,684401.470832407,69,K-63a,36069,100 Blk Coosa St_West side,11,Kiosk located near space 6
+508901.081995495,684271.360856406,70,K-63b,36069,100 Blk Coosa St_West side,4,Kiosk located near space 2
+508645.587099664,684606.084924489,72,K-64,36069,200 Blk Coosa St_West side,10,Kiosk located near space 7
+509362.383238245,683565.264171489,73,K-65,36065,99 Blk Market Plaza_East side,5,"Parallel spaces; kiosk located near space 3"
+509523.17655183,682766.103040159,75,K-66a,36034,99 Blk Washington Ave_South side,8,Kiosk located near space 9
+509695.91537958,682847.78463532,77,K-67,36057,99 Blk Washington Ave_North side,8,Kiosk located near space 4
+509491.664475746,682835.064516403,78,K-68,36057,99 Blk Washington Ave_North side,7,"Spaces split by alley; kiosk located near space 4"
+508493.214700997,684384.133596741,79,K-05b,36079,100 Blk Tallapoosa St_North side,7,Kiosk located near space 4
+508671.578845579,684444.837871656,80,K-04b,36081,100 Blk Tallapoosa St_South side,4,Kiosk located near space 2
+509573.212540995,683642.134424575,81,K-15,36065,99 Blk Monroe St_South side,12,kiosk near Kress building entrance
+509684.979705911,682772.036099158,82,K-66b,36034,99 Blk Washington Ave_South side,12,Kiosk located near space 9
+508275.196764328,684215.480062656,83,K-03b,36078,200 Blk Tallapoosa St_North side,16,Kiosk located near space 8
+510078.760086328,683667.792181656,84,K-17b,36065,100 Blk Monroe St_South side,6,Kiosk located in eastern part of block

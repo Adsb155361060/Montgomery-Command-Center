@@ -3,7 +3,7 @@ import { useBackgroundAction } from '@/hooks/useBackgroundAction';
 import { youthshield } from '@/lib/api';
 import { ModuleHeader, StatCard } from '@/components/shared';
 import { Markdown } from '@/components/shared/Markdown';
-import { AdaptiveRenderer, pick, labelify, SmartValue, smartText } from '@/components/shared/AdaptiveRenderer';
+import { AdaptiveRenderer, pick, labelify, SmartValue, smartText, sanitizeH3, isH3Hex } from '@/components/shared/AdaptiveRenderer';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Shield, Zap, RefreshCw, DollarSign, Users, TrendingDown, Clock } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
@@ -58,29 +58,40 @@ export default function InterventionPage() {
   const interventionsArr = Array.isArray(interventions) ? interventions : [];
 
   // ─── Derived stats from actual data ───
-  // The AI returns interventions[], coverageGaps[], coordinationNotes — stats are derived from those
+  // The API returns { interventions[], coverageGaps[], coordinationNotes } — stats are derived
   const estReduction = Number(pick(d, 'estimatedReduction', 'reductionPercent', 'reduction', 'estimatedImpact', 'impactPercent', 'crimeReduction')) || 0;
-  const annualCost = Number(pick(d, 'annualCost', 'cost', 'totalCost', 'estimatedCost', 'budget', 'annualBudget')) || 0;
+
+  // Cost: try top-level, then sum from interventions, then count programs
+  let annualCost = Number(pick(d, 'annualCost', 'cost', 'totalCost', 'estimatedCost', 'budget', 'annualBudget')) || 0;
+  if (!annualCost && interventionsArr.length > 0) {
+    annualCost = interventionsArr.reduce((sum: number, it: any) => {
+      const c = Number(pick(it, 'estimatedCost', 'cost', 'budget', 'amount'));
+      return sum + (isFinite(c) ? c : 0);
+    }, 0);
+  }
+
   const youthReached = Number(pick(d, 'youthReached', 'estimatedYouth', 'participants', 'targetYouth', 'youthServed', 'totalParticipants')) || 0;
   const timelineVal = pick(d, 'timelineMonths', 'timeline', 'duration', 'implementationTimeline', 'months');
 
-  // Compute from interventions array when top-level fields are absent
+  // Compute from interventions array
   const highUrgencyCount = interventionsArr.filter((it: any) => {
     const u = String(pick(it, 'urgency', 'priority', 'level') || '').toLowerCase();
     return u.includes('high') || u.includes('critical') || u.includes('urgent') || u.includes('immediate');
   }).length;
   const uniqueProviders = [...new Set(interventionsArr.map((it: any) =>
     String(pick(it, 'provider', 'organization', 'agency', 'partner') || '')).filter(Boolean))];
+  const uniqueTimeSlots = [...new Set(interventionsArr.map((it: any) =>
+    String(pick(it, 'timeSlot', 'timeSlots', 'schedule', 'time') || '')).filter(Boolean))];
 
   // Stat values: use top-level fields if present, otherwise derive from interventions array
   const statInterventions = interventionsArr.length || stepsArr.length;
   const statCost = annualCost > 0 ? formatCurrency(annualCost)
     : interventionsArr.length > 0 ? `${interventionsArr.length} Programs` : '—';
-  const statYouth = youthReached > 0 ? youthReached
-    : uniqueProviders.length > 0 ? `${uniqueProviders.length} Providers` : '—';
+  const statProviders = uniqueProviders.length > 0 ? `${uniqueProviders.length}` : (youthReached > 0 ? String(youthReached) : '—');
   const statTimeline = typeof timelineVal === 'number' ? `${timelineVal}mo`
     : timelineVal ? String(timelineVal)
-    : highUrgencyCount > 0 ? `${highUrgencyCount} High Priority` : '—';
+    : uniqueTimeSlots.length > 0 ? `${uniqueTimeSlots.length} Slots`
+    : highUrgencyCount > 0 ? `${highUrgencyCount} Urgent` : '—';
 
   // Cost breakdown
   const breakdown = pick(d, 'breakdown', 'costBreakdown', 'budgetBreakdown', 'costs');
@@ -164,8 +175,8 @@ export default function InterventionPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard label={estReduction > 0 ? "Est. Reduction" : "Interventions"} value={estReduction > 0 ? `${estReduction}%` : statInterventions || '—'} icon={<TrendingDown className="w-4 h-4" />} color="text-emerald-400" />
                 <StatCard label="Annual Cost" value={statCost} icon={<DollarSign className="w-4 h-4" />} color="text-amber-400" />
-                <StatCard label={youthReached > 0 ? "Youth Reached" : "Providers"} value={statYouth} icon={<Users className="w-4 h-4" />} color="text-youthshield-400" />
-                <StatCard label={highUrgencyCount > 0 && !timelineVal ? "Priority Zones" : "Timeline"} value={statTimeline} icon={<Clock className="w-4 h-4" />} color="text-blight-400" />
+                <StatCard label="Providers" value={statProviders} icon={<Users className="w-4 h-4" />} color="text-youthshield-400" />
+                <StatCard label={uniqueTimeSlots.length > 0 ? "Time Slots" : highUrgencyCount > 0 ? "Priority" : "Timeline"} value={statTimeline} icon={<Clock className="w-4 h-4" />} color="text-blight-400" />
               </div>
 
               {/* Implementation Steps */}
@@ -220,25 +231,41 @@ export default function InterventionPage() {
                           </div>
                         );
                       }
-                      const title = pick(item, 'name', 'title', 'program', 'type', 'intervention') || `Program ${i + 1}`;
+                      const title = pick(item, 'name', 'title', 'program', 'type', 'intervention', 'recommendedIntervention') || `Program ${i + 1}`;
                       const desc = pick(item, 'description', 'text', 'details', 'rationale', 'summary');
                       const target = pick(item, 'targetPopulation', 'target', 'audience', 'participants');
                       const cost = pick(item, 'estimatedCost', 'cost', 'budget', 'amount');
-                      const itemHandled = new Set(['name', 'title', 'program', 'type', 'intervention', 'description', 'text', 'details', 'rationale', 'summary', 'targetPopulation', 'target', 'audience', 'participants', 'estimatedCost', 'cost', 'budget', 'amount']);
+                      const provider = pick(item, 'provider', 'organization', 'agency', 'partner');
+                      const timeSlot = pick(item, 'timeSlot', 'timeSlots', 'schedule', 'time');
+                      const urgency = pick(item, 'urgency', 'priority', 'level');
+                      const zone = pick(item, 'zone', 'zoneH3', 'h3Index', 'area', 'location', 'deploymentPoint');
+                      const itemHandled = new Set(['name', 'title', 'program', 'type', 'intervention', 'recommendedIntervention', 'description', 'text', 'details', 'rationale', 'summary', 'targetPopulation', 'target', 'audience', 'participants', 'estimatedCost', 'cost', 'budget', 'amount', 'provider', 'organization', 'agency', 'partner', 'timeSlot', 'timeSlots', 'schedule', 'time', 'urgency', 'priority', 'level', 'zone', 'zoneH3', 'h3Index', 'area', 'location', 'deploymentPoint', 'riskScore']);
                       const extra = Object.entries(item).filter(([k, v]) => !itemHandled.has(k) && v != null && v !== '');
                       return (
                         <div key={i} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <h4 className="text-sm font-semibold text-slate-200">{title}</h4>
-                              {desc && <p className="text-sm text-slate-400 mt-1 leading-relaxed">{desc}</p>}
-                              {target && <p className="text-sm text-youthshield-400 mt-1">Target: {target}</p>}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="text-sm font-semibold text-slate-200">{typeof title === 'string' ? sanitizeH3(title) : title}</h4>
+                                {urgency && (
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${String(urgency).toLowerCase().includes('high') || String(urgency).toLowerCase().includes('critical') ? 'bg-red-500/20 text-red-400' : String(urgency).toLowerCase().includes('medium') ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-400'}`}>
+                                    {urgency}
+                                  </span>
+                                )}
+                              </div>
+                              {provider && <p className="text-sm text-youthshield-400 mt-1">{sanitizeH3(String(provider))}</p>}
+                              {desc && <p className="text-sm text-slate-400 mt-1 leading-relaxed">{sanitizeH3(String(desc))}</p>}
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                                {zone && <span className="text-xs text-slate-500"><span className="font-medium">Zone:</span> {isH3Hex(String(zone)) ? sanitizeH3(String(zone)) : zone}</span>}
+                                {timeSlot && <span className="text-xs text-slate-500"><span className="font-medium">Time:</span> {timeSlot}</span>}
+                                {target && <span className="text-xs text-youthshield-400/70"><span className="font-medium">Target:</span> {sanitizeH3(String(target))}</span>}
+                              </div>
                               {extra.length > 0 && (
                                 <div className="mt-2 space-y-0.5">
                                   {extra.map(([k, v]) => (
                                     <div key={k} className="text-sm">
                                       <span className="text-slate-500 font-medium">{labelify(k)}: </span>
-                                      <span className="text-slate-300">{typeof v === 'object' ? <SmartValue label={k} value={v} /> : String(v)}</span>
+                                      <span className="text-slate-300">{typeof v === 'object' ? <SmartValue label={k} value={v} /> : sanitizeH3(String(v))}</span>
                                     </div>
                                   ))}
                                 </div>

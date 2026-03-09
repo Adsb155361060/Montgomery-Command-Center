@@ -1,12 +1,14 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useBackgroundTasks } from '@/contexts/BackgroundTaskContext';
+import { useOnboardingReset } from '@/components/onboarding/OnboardingGuide';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Bell, Search, Loader2 } from 'lucide-react';
+import { LogOut, User, Bell, Search, Loader2, HelpCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export function Header() {
   const { user, logout } = useAuth();
   const { tasks } = useBackgroundTasks();
+  const resetOnboarding = useOnboardingReset();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const runningTasks = tasks.filter(t => t.status === 'running');
@@ -88,6 +90,12 @@ export function Header() {
                     {user?.role}
                   </span>
                 </div>
+                <button
+                  onClick={() => { setShowDropdown(false); resetOnboarding(); }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700/50 flex items-center gap-2 transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4" /> Restart Tour
+                </button>
                 <button
                   onClick={handleLogout}
                   className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 transition-colors"

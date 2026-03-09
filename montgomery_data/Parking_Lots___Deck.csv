@@ -1,0 +1,6 @@
+﻿X,Y,OBJECTID,Name,Address,Hourly_Rate,Monthly_Rate,Reserved,Notes
+508158.062812246,684373.78847307,1,Commerce Parking,213 Commerce Street,$10 per entry,$55,Not Available,"103 spaces, Open 24/7"
+508411.560664829,684747.275915071,2,Coosa Deck,233 Coosa Street,"0-1 hr: $2; 1-1.5hr: $3; 1.5-2 hr: $4; 2-2.5 hr: $5; 2.5-24 hrs: $6",$50,$70,Open 24/7
+507398.661115829,684006.778380319,3,Intermodal Deck,495 Molton Street,"0-1 hr: $2; 1-1.5hr: $3; 1.5-2 hr: $4; 2-2.5 hr: $5; 2.5-24 hrs: $6",$45,$55,Open 24/7
+509634.855790414,682922.774970904,4,Washington Deck,45 Washington Avenue,Not Available,$45,Not Available,Open 24/7
+509476.118575078,683811.666565821,5,Municipal Deck,35 Monroe Street,"0-1 hr: $2; 1-1.5hr: $3; 1.5-2 hr: $4; 2-2.5 hr: $5; 2.5-24 hrs: $6",$45,$55,Open 24/7

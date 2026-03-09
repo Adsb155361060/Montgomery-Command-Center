@@ -1,0 +1,74 @@
+﻿OBJECTID,KIOSK_ID,PARKMOBILE_ZONE,BLOCK,SPACES,NOTES,Shape__Length
+3,K-03b,36078,200 Blk Tallapoosa St_North side,8,Kiosk located near space 8,126.975880371561
+4,K-04a,36081,100 Blk Tallapoosa St_South side,8,Kiosk located near space 6,139.350490368308
+5,K-05a,36079,100 Blk Tallapoosa St_North side,9,Kiosk located near space 5,137.972475347726
+6,K-06,36080,99 Blk Tallapoosa St_South side,9,Kiosk located near space 5,129.539794326814
+7,K-07,36080,99 Blk Tallapoosa St_South side,11,Kiosk located near space 5,142.122508300982
+8,K-08,N/A,99 Blk Columbus St_South side,12,Kiosk located near space 6,286.122823702978
+9,K-09,N/A,100 Blk Columbus St_South side,10,Kiosk located near space 5,262.342151496226
+10,K-10,N/A,200 Blk Columbus St_South side,10,Kiosk located near space 5,263.999559513248
+11,K-11,36096,99 Blk W Jefferson St_South side,8,Kiosk located near space 4,126.590559982203
+12,K-12,36096,99 Blk W Jefferson St_North side,7,Kiosk located near space 5,154.981360929799
+13,K-13,36096,99 Blk W Jefferson St_North side,16,Kiosk located near space 8,201.653484321224
+15,K-16,36064,99 Blk Monroe St_North side,4,Kiosk located near space 2,99.9717350325761
+16,K-17,36065,100 Blk Monroe St_South side,6,Kiosk located in eastern half of block,242.045404202238
+17,K-18,36064,100 Blk Monroe St_North side,8,Kiosk located near space 4,268.065082058348
+18,K-19a,36012,500 Blk Monroe St_South side,8,Kiosk located near space 4,91.3476164181616
+19,K-19b,36012,500 Blk Monroe St_South side,9,Kiosk located near space 4,116.556435868644
+20,K-20,36012,600 Blk Monroe St_South side,9,"Parallel spaces; kiosk located near space 4",193.410931257852
+21,K-21,36018,400 Blk Dexter Ave_North side,9,Kiosk located near space 3,118.441330570411
+22,K-22a,36017,400 Blk Dexter Ave_south side,10,Kiosk located near space 5,141.905198640227
+23,K-22b,36017,400 Blk Dexter Ave_South side,10,Kiosk located near space 5,105.696291133135
+24,K-23,36058,300 Blk Dexter Ave_North side,8,Kiosk located near space 4,106.791616151281
+25,K-24,36058,300 Blk Dexter Ave_North side,8,Kiosk located near space 4,101.958745831111
+26,K-25,36058,200 Blk Dexter Ave_North side,6,Kiosk located near space 3,87.8536162925054
+27,K-26,36058,200 Blk Dexter Ave_North side,4,Kiosk located near space 2,53.2138764474457
+28,K-27,36059,200 Blk Dexter Ave_South side,12,Kiosk located near space 6,138.728933767074
+29,K-28,36059,200 Blk Dexter Ave_South side,12,Kiosk located near space 6,148.742194241413
+30,K-29,36060,100 Blk Dexter Ave_North side,13,Kiosk located near space 7,133.461139470697
+31,K-30,36060,100 Blk Dexter Ave_North side,13,Kiosk located near space 7,121.047644618968
+32,K-31,36061,100 Blk Dexter Ave_South side,12,Kiosk located near space 6,181.41011866073
+33,K-32,36063,99 Blk Dexter Ave_North side,9,Kiosk located near space 6,113.258643731969
+34,K-33,36063,99 Blk Dexter Ave_North side,10,Kiosk located near space 5,133.671958152573
+35,K-34,36062,99 Blk Dexter Ave_South side,10,Kiosk located near space 6,170.175263556277
+36,K-35,36062,99 Blk Dexter Ave_South side,9,Kiosk located near space 5,126.175637530328
+37,K-36,36063,Court Square,10,Kiosk located near space 6,110.807127117009
+38,K-37,36070,99 Blk Commerce St_East side,10,Kiosk located near space 5,130.491688643487
+39,K-38,36070,99 Blk Commerce St_East side,8,Kiosk located near space 4,99.9075815030088
+40,K-39,36070,99 Blk Commerce St_East side,9,"Spaces split by 6 reserved spaces; kiosk located near 60 Commerce St",178.509358825512
+42,K-40a,36071,100 Blk Commerce St_East side,7,"Space 7 split from spaces 1-6; kiosk located near Alley entrance",158.361070892411
+43,K-40b,36071,100 Blk Commerce St_East side,8,Kiosk located near space 4,115.558139131509
+44,K-41,36072,200 Blk Commerce St_East side,10,Kiosk located near space 5,133.828065284141
+45,K-42,36072,200 Blk Commerce St_East side,4,"Parallel spaces; kiosk located near 250 Commerce St entrance",114.754916515013
+46,K-43,36073,200 Blk Commerce St_West side,12,Kiosk located near space 5,170.845723351231
+47,K-44,36074,100 Blk Commerce St_West side,8,Kiosk located near space 4,95.4701241464684
+48,K-45,36074,100 Blk Commerce St_West side,6,Kiosk located near space 4,111.43786332128
+49,K-46,36074,100 Blk Commerce St_West side,10,Kiosk located near space 5,145.256310387663
+50,K-47,36075,99 Blk Commerce St_West side,6,Kiosk located near space 3,71.8572586234113
+51,K-48,36075,99 Blk Commerce St_West side,6,Kiosk located near space 4,105.687205368488
+52,K-49,36075,99 Blk Commerce St_West side,8,Kiosk located near space 4,107.33172405205
+53,K-50,36054,99 Blk S Court St_East side,9,"Parallel spaces; kiosk located near space 5",192.528097298223
+54,K-51,36052,100 Blk N Perry St_East side,6,"Parallel spaces; kiosk located near space 3",137.56507606396
+55,K-54,36053,100 Blk N Perry St_South side,5,"Parallel spaces; kiosk located near space 3",123.332171371111
+56,K-52,36052,100 Blk N Perry St_East side,6,"Parallel spaces; kiosk located near space 3",132.979016649442
+57,K-53,36053,100 Blk N Perry St_North side,5,"Parallel spaces; kiosk located near space 2",80.6673141841203
+58,K-55,36051,99 Blk S Perry ST_West side,6,"Parallel spaces; kiosk located near space 3",140.996189401204
+59,K-56,36051,99 Blk S Perry ST_West side,5,"Parallel spaces; kiosk located near space 3",119.928922319389
+60,K-57,36050,99 Blk S Perry St_East side,3,not placed,69.3634474244273
+61,K-58,36050,99 Blk S Perry St_East side,7,"Parallel spaces; kiosk located near space 5",148.964230430387
+62,K-59,36051,99 Blk N Perry St_West side,8,"Parallel spaces; kiosk located near space 4",183.509098750301
+63,K-60,36055,99 Blk Coosa St_East side,8,"Parallel spaces; kiosk located near space 6",186.684233533552
+64,K-61,36068,99 Blk Coosa St_West side,5,Kiosk located near space 3,74.3190984010538
+65,K-62,36068,99 Blk Coosa St_West side,8,Kiosk located near space 4,129.843313747891
+66,K-63a,36069,100 Blk Coosa St_West side,11,Kiosk located near space 6,159.123990033274
+67,K-63b,36069,100 Blk Coosa St_West side,4,Kiosk located near space 2,47.1766023114514
+69,K-64,36069,200 Blk Coosa St_West side,10,Kiosk located near space 7,185.152004844045
+70,K-65,36065,99 Blk Market Plaza_East side,5,"Parallel spaces; kiosk located near space 3",92.5619408002219
+72,K-66,36034,99 Blk Washington Ave_South side,12,Kiosk located near space 9,154.793658860667
+74,K-67,36057,99 Blk Washington Ave_North side,8,Kiosk located near space 4,107.391246221217
+75,K-68,36057,99 Blk Washington Ave_North side,7,"Spaces split by alley; kiosk located near space 4",169.904924915837
+76,K-05b,36079,100 Blk Tallapoosa St_North side,7,Kiosk located near space 9,102.380637195085
+77,K-04b,36081,100 Blk Tallapoosa St_South side,4,Kiosk located near space 2,51.9555025645154
+79,K-03a,36078,200 Blk Tallapoosa St_North side,8,Kiosk located near space 8,105.176567227652
+80,K-15,36065,99 Blk Monroe St_South side,12,kiosk near Kress building entrance,214.130779396003
+81,K-66,36034,99 Blk Washington Ave_South side,8,Kiosk located near space 9,194.31552261485

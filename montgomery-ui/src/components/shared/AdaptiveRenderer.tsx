@@ -29,6 +29,36 @@ export function labelify(key: string): string {
     .trim();
 }
 
+/**
+ * Detect H3 hex index strings (e.g. "8744ec799ffffff", "872a1073bffffff")
+ * and replace them with friendly zone labels.
+ * Also handles arrays / sentences containing H3 hex IDs.
+ */
+const H3_REGEX = /\b[89a-f][0-9a-f]{14}\b/gi;
+let _h3Counter = 0;
+const _h3Map = new Map<string, string>();
+
+export function friendlyZone(h3: string): string {
+  const lower = h3.toLowerCase();
+  if (!_h3Map.has(lower)) {
+    _h3Counter++;
+    const letter = String.fromCharCode(64 + ((_h3Counter - 1) % 26) + 1); // A-Z
+    const num = Math.ceil(_h3Counter / 26);
+    _h3Map.set(lower, `Zone ${letter}-${num}`);
+  }
+  return _h3Map.get(lower)!;
+}
+
+/** Replace all H3 hex IDs in a string with friendly zone labels */
+export function sanitizeH3(value: string): string {
+  return value.replace(H3_REGEX, match => friendlyZone(match));
+}
+
+/** Check if a string is purely an H3 hex index */
+export function isH3Hex(value: string): boolean {
+  return /^[89a-f][0-9a-f]{14}$/i.test(value.trim());
+}
+
 /** Format a dollar value */
 export function fmtDollars(n: number | string): string {
   const num = typeof n === 'string' ? parseFloat(n.replace(/[^0-9.-]/g, '')) : n;
@@ -176,19 +206,21 @@ function groupIntoSections(entries: FlatEntry[]): Section[] {
 /* ─── Render a primitive value with formatting ─── */
 function RenderValue({ label, value }: { label: string; value: any }) {
   if (value === null || value === undefined || value === '') return null;
-  const str = String(value);
+  // Sanitize H3 hex IDs in string values
+  const raw = typeof value === 'string' ? sanitizeH3(value) : value;
+  const str = String(raw);
 
-  if (typeof value === 'number' && isPercent(label)) {
-    return <span className="text-slate-200 font-mono">{value}%</span>;
+  if (typeof raw === 'number' && isPercent(label)) {
+    return <span className="text-slate-200 font-mono">{raw}%</span>;
   }
-  if (isDollar(label, value) && typeof value === 'number') {
-    return <span className="text-emerald-400 font-mono">{fmtDollars(value)}</span>;
+  if (isDollar(label, raw) && typeof raw === 'number') {
+    return <span className="text-emerald-400 font-mono">{fmtDollars(raw)}</span>;
   }
-  if (typeof value === 'string' && /^\$/.test(value)) {
-    return <span className="text-emerald-400 font-mono">{value}</span>;
+  if (typeof raw === 'string' && /^\$/.test(raw)) {
+    return <span className="text-emerald-400 font-mono">{raw}</span>;
   }
-  if (typeof value === 'boolean') {
-    return <span className={value ? 'text-emerald-400' : 'text-red-400'}>{value ? 'Yes' : 'No'}</span>;
+  if (typeof raw === 'boolean') {
+    return <span className={raw ? 'text-emerald-400' : 'text-red-400'}>{raw ? 'Yes' : 'No'}</span>;
   }
   if (str.length > 200) {
     return <span className="text-slate-300 leading-relaxed">{str}</span>;
@@ -208,7 +240,7 @@ function ValueCell({ label, value }: { label: string; value: any }) {
     return (
       <span className="inline-flex flex-wrap gap-1.5">
         {value.map((item, i) => (
-          <span key={i} className="px-2.5 py-1 bg-slate-700/40 rounded text-slate-300 text-xs">{String(item)}</span>
+          <span key={i} className="px-2.5 py-1 bg-slate-700/40 rounded text-slate-300 text-xs">{typeof item === 'string' ? sanitizeH3(String(item)) : String(item)}</span>
         ))}
       </span>
     );
@@ -387,7 +419,7 @@ export function SmartValue({ label, value }: { label: string; value: any }) {
  */
 export function smartText(value: any): string {
   if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') return sanitizeH3(value);
   if (typeof value === 'number') return value.toLocaleString();
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (Array.isArray(value)) {

@@ -2,6 +2,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { FloatingAiAssistant } from './FloatingAiAssistant';
+import OnboardingGuide from '@/components/onboarding/OnboardingGuide';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/shared';
 
@@ -36,6 +37,7 @@ export default function Layout() {
         </main>
       </div>
       <FloatingAiAssistant />
+      <OnboardingGuide />
     </div>
   );
 }

@@ -38,10 +38,10 @@ export default function RiskZonesPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {zones.map((zone: any) => (
+        {zones.map((zone: any, idx: number) => (
           <div key={zone.id} className={`glass-card p-5 border-l-4 ${zone.riskScore > 70 ? 'border-l-red-500' : zone.riskScore > 40 ? 'border-l-amber-500' : 'border-l-emerald-500'}`}>
             <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-xs text-slate-500">Zone {zone.h3Index?.slice(-4).toUpperCase() || zone.id}</span>
+              <span className="font-mono text-xs text-slate-500">Zone {String.fromCharCode(65 + (idx % 26))}-{Math.floor(idx / 26) + 1}</span>
               <span className={`badge text-xs ${zone.riskScore > 70 ? 'badge-danger' : zone.riskScore > 40 ? 'badge-warning' : 'badge-success'}`}>
                 Risk: {zone.riskScore}
               </span>

@@ -38,14 +38,14 @@ export default function ScoresPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {items.map((s: any) => {
+        {items.map((s: any, idx: number) => {
           const score = s.blightScore ?? s.score ?? 0;
           const isHigh = score > 70;
           const isMed = score > 40;
           return (
             <div key={s.id || s.h3Index} className={`glass-card p-5 border-l-4 ${isHigh ? 'border-l-red-500' : isMed ? 'border-l-amber-500' : 'border-l-emerald-500'}`}>
               <div className="flex items-center justify-between mb-3">
-                <span className="font-mono text-xs text-slate-500">{s.address?.slice(0, 25) || `Zone ${s.h3Index?.slice(-4).toUpperCase() || s.id}`}</span>
+                <span className="font-mono text-xs text-slate-500">{s.address?.slice(0, 25) || `Area ${String.fromCharCode(65 + (idx % 26))}-${Math.floor(idx / 26) + 1}`}</span>
                 {isHigh ? <TrendingUp className="w-4 h-4 text-red-400" /> : <TrendingDown className="w-4 h-4 text-emerald-400" />}
               </div>
 

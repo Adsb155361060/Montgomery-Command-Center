@@ -47,7 +47,7 @@ export default function GapAnalysisPage() {
           <div className="glass-card p-6">
             <h3 className="text-sm font-semibold text-slate-300 mb-4">Gap Scores by Zone</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={gaps.slice(0, 15).map((g: any) => ({ ...g, label: g.zone || g.h3Index || g.district || 'Zone', score: g.gapScore ?? g.gapHours ?? g.score ?? 0 }))}>
+              <BarChart data={gaps.slice(0, 15).map((g: any, i: number) => ({ ...g, label: g.zone || g.district || `Zone ${String.fromCharCode(65 + (i % 26))}`, score: g.gapScore ?? g.gapHours ?? g.score ?? 0 }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={(v: string) => typeof v === 'string' ? v.slice(0, 12) : String(v)} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
@@ -80,11 +80,11 @@ export default function GapAnalysisPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {gaps.map((gap: any, idx: number) => {
-          const zoneName = gap.zone || gap.district || (gap.h3Index ? `Zone ${gap.h3Index.slice(-4).toUpperCase()}` : `Zone ${idx + 1}`);
+          const zoneName = gap.zone || gap.district || `Zone ${String.fromCharCode(65 + (idx % 26))}-${Math.floor(idx / 26) + 1}`;
           const score = gap.gapScore ?? gap.score ?? 0;
           const gapHoursText = gap.gapHours || '';
           return (
-            <div key={gap.id || gap.h3Index || idx} className="glass-card p-5 hover:border-youthshield-500/30 transition-all duration-300">
+            <div key={gap.id || idx} className="glass-card p-5 hover:border-youthshield-500/30 transition-all duration-300">
               <div className="flex items-center justify-between mb-3">
                 <span className="font-mono text-xs text-slate-500">{typeof zoneName === 'string' ? zoneName.slice(0, 20) : zoneName}</span>
                 <span className={`badge text-xs ${score > 60 ? 'badge-danger' : score > 30 ? 'badge-warning' : 'badge-success'}`}>
