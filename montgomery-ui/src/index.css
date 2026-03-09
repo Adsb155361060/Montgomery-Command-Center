@@ -6,40 +6,40 @@
    THEME VARIABLES — Light & Dark
    ══════════════════════════════════════════════════ */
 :root {
-  --bg-base:        #f8fafc;   /* slate-50 */
-  --bg-surface:     #ffffff;
-  --bg-card:        #ffffff;
-  --bg-card-hover:  #f1f5f9;   /* slate-100 */
-  --bg-sidebar:     #ffffff;
-  --bg-header:      rgba(255,255,255,0.85);
-  --bg-input:       #f1f5f9;   /* slate-100 */
-  --bg-elevated:    #e2e8f0;   /* slate-200 */
-  --bg-overlay:     rgba(0,0,0,0.3);
-  --bg-tab:         #f1f5f9;
+  --bg-base:        #eceef2;   /* cool light gray — white cards pop clearly */
+  --bg-surface:     #f5f6f8;   /* lighter surface for sidebar */
+  --bg-card:        #ffffff;   /* pure white cards */
+  --bg-card-hover:  #f5f6f8;
+  --bg-sidebar:     #f5f6f8;
+  --bg-header:      rgba(255,255,255,0.95);
+  --bg-input:       #ffffff;
+  --bg-elevated:    #e2e5eb;
+  --bg-overlay:     rgba(15,23,42,0.25);
+  --bg-tab:         #e2e5eb;
 
-  --border-default: #e2e8f0;   /* slate-200 */
-  --border-subtle:  #cbd5e1;   /* slate-300 */
+  --border-default: #d1d5dc;   /* clearly visible borders */
+  --border-subtle:  #b8bec9;
 
-  --text-primary:   #0f172a;   /* slate-900 */
-  --text-secondary: #475569;   /* slate-600 */
-  --text-muted:     #64748b;   /* slate-500 */
-  --text-faint:     #94a3b8;   /* slate-400 */
+  --text-primary:   #111827;   /* gray-900 — strong, crisp */
+  --text-secondary: #1f2937;   /* gray-800 — very readable */
+  --text-muted:     #374151;   /* gray-700 — clearly legible */
+  --text-faint:     #4b5563;   /* gray-600 — readable even at small sizes */
   --text-inverse:   #ffffff;
 
-  --shadow-card:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-lg:      0 4px 24px rgba(0,0,0,0.08);
+  --shadow-card:    0 1px 3px rgba(0,0,0,0.07), 0 2px 10px rgba(0,0,0,0.04);
+  --shadow-lg:      0 4px 20px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.05);
 
-  --scrollbar-track: #f1f5f9;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-hover: #94a3b8;
+  --scrollbar-track: #eceef2;
+  --scrollbar-thumb: #b8bec9;
+  --scrollbar-hover: #8b92a0;
 
   --select-bg:      #ffffff;
-  --select-color:   #0f172a;
+  --select-color:   #111827;
 
-  --chart-axis:     #64748b;
-  --chart-legend:   #475569;
+  --chart-axis:     #4b5563;
+  --chart-legend:   #374151;
 
-  --toast-bg:       rgba(255,255,255,0.95);
+  --toast-bg:       rgba(255,255,255,0.97);
 }
 
 .dark {
@@ -286,3 +286,44 @@ select option {
 
 /* Toast */
 .bg-navy-900\/90 { background-color: var(--toast-bg); }
+
+/* ══════════════════════════════════════════════════
+   LIGHT-MODE ACCENT FIXES
+   Use deeper shades so colored text is readable
+   on light/white card backgrounds.
+   ══════════════════════════════════════════════════ */
+
+/* Accent text — darker variants for light mode */
+html:not(.dark) .text-amber-400  { color: #b45309; }   /* amber-700 */
+html:not(.dark) .text-amber-300  { color: #d97706; }   /* amber-600 */
+html:not(.dark) .text-red-400    { color: #dc2626; }   /* red-600 */
+html:not(.dark) .text-red-300    { color: #dc2626; }
+html:not(.dark) .text-emerald-400 { color: #059669; }  /* emerald-600 */
+html:not(.dark) .text-emerald-300 { color: #059669; }
+html:not(.dark) .text-blue-400   { color: #2563eb; }   /* blue-600 */
+html:not(.dark) .text-blue-300   { color: #2563eb; }
+html:not(.dark) .text-purple-400 { color: #7c3aed; }   /* violet-600 */
+html:not(.dark) .text-purple-300 { color: #7c3aed; }
+html:not(.dark) .text-cyan-400   { color: #0891b2; }   /* cyan-600 */
+html:not(.dark) .text-orange-400 { color: #ea580c; }   /* orange-600 */
+html:not(.dark) .text-pink-400   { color: #db2777; }   /* pink-600 */
+html:not(.dark) .text-violet-400 { color: #7c3aed; }   /* violet-600 */
+
+/* Module accent text */
+html:not(.dark) .text-sentinel-400  { color: #dc2626; }
+html:not(.dark) .text-youthshield-400 { color: #7c3aed; }
+html:not(.dark) .text-blight-400  { color: #2563eb; }
+html:not(.dark) .text-compass-400 { color: #059669; }
+
+/* Translucent accent backgrounds — slightly stronger on light */
+html:not(.dark) .bg-amber-500\/10  { background-color: rgba(245,158,11,0.15); }
+html:not(.dark) .bg-red-500\/10    { background-color: rgba(239,68,68,0.12); }
+html:not(.dark) .bg-emerald-500\/10 { background-color: rgba(16,185,129,0.12); }
+html:not(.dark) .bg-blue-500\/10   { background-color: rgba(59,130,246,0.12); }
+html:not(.dark) .bg-purple-500\/10  { background-color: rgba(168,85,247,0.12); }
+
+/* Gradient text overlay fix — ensure colored stat numbers are vivid */
+html:not(.dark) .text-sentinel-500  { color: #dc2626; }
+html:not(.dark) .text-youthshield-500 { color: #9333ea; }
+html:not(.dark) .text-blight-500  { color: #2563eb; }
+html:not(.dark) .text-compass-500 { color: #059669; }
