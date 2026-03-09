@@ -349,8 +349,8 @@ export default function OnboardingGuide() {
           </div>
 
           {/* Bottom decorative glow */}
-          <div className={cn('absolute -bottom-20 -right-20 w-60 h-60 rounded-full blur-3xl opacity-20', step.bgGlow)} />
-          <div className={cn('absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-3xl opacity-10', step.bgGlow)} />
+          <div className={cn('absolute -bottom-20 -right-20 w-60 h-60 rounded-full blur-3xl opacity-20 pointer-events-none', step.bgGlow)} />
+          <div className={cn('absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-3xl opacity-10 pointer-events-none', step.bgGlow)} />
         </div>
       </div>
     </>

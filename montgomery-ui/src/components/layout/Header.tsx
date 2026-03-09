@@ -1,13 +1,15 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useBackgroundTasks } from '@/contexts/BackgroundTaskContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useOnboardingReset } from '@/components/onboarding/OnboardingGuide';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Bell, Search, Loader2, HelpCircle } from 'lucide-react';
+import { LogOut, User, Bell, Search, Loader2, HelpCircle, Sun, Moon } from 'lucide-react';
 import { useState } from 'react';
 
 export function Header() {
   const { user, logout } = useAuth();
   const { tasks } = useBackgroundTasks();
+  const { isDark, toggle: toggleTheme } = useTheme();
   const resetOnboarding = useOnboardingReset();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -55,6 +57,15 @@ export function Header() {
             </span>
           </div>
         )}
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800/50"
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
 
         {/* Notifications bell */}
         <button

@@ -2,12 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════
+   THEME VARIABLES — Light & Dark
+   ══════════════════════════════════════════════════ */
+:root {
+  --bg-base:        #f8fafc;   /* slate-50 */
+  --bg-surface:     #ffffff;
+  --bg-card:        #ffffff;
+  --bg-card-hover:  #f1f5f9;   /* slate-100 */
+  --bg-sidebar:     #ffffff;
+  --bg-header:      rgba(255,255,255,0.85);
+  --bg-input:       #f1f5f9;   /* slate-100 */
+  --bg-elevated:    #e2e8f0;   /* slate-200 */
+  --bg-overlay:     rgba(0,0,0,0.3);
+  --bg-tab:         #f1f5f9;
+
+  --border-default: #e2e8f0;   /* slate-200 */
+  --border-subtle:  #cbd5e1;   /* slate-300 */
+
+  --text-primary:   #0f172a;   /* slate-900 */
+  --text-secondary: #475569;   /* slate-600 */
+  --text-muted:     #64748b;   /* slate-500 */
+  --text-faint:     #94a3b8;   /* slate-400 */
+  --text-inverse:   #ffffff;
+
+  --shadow-card:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg:      0 4px 24px rgba(0,0,0,0.08);
+
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-hover: #94a3b8;
+
+  --select-bg:      #ffffff;
+  --select-color:   #0f172a;
+
+  --chart-axis:     #64748b;
+  --chart-legend:   #475569;
+
+  --toast-bg:       rgba(255,255,255,0.95);
+}
+
+.dark {
+  --bg-base:        #0a0d1a;
+  --bg-surface:     #0f1225;
+  --bg-card:        rgba(30,41,59,0.5);   /* slate-800/50 */
+  --bg-card-hover:  rgba(30,41,59,0.7);
+  --bg-sidebar:     #0f1225;
+  --bg-header:      rgba(15,18,37,0.8);
+  --bg-input:       rgba(30,41,59,0.5);
+  --bg-elevated:    #1e293b;
+  --bg-overlay:     rgba(0,0,0,0.6);
+  --bg-tab:         rgba(30,41,59,0.5);
+
+  --border-default: rgba(51,65,85,0.5);   /* slate-700/50 */
+  --border-subtle:  rgba(71,85,105,0.5);
+
+  --text-primary:   #f1f5f9;   /* slate-100 */
+  --text-secondary: #cbd5e1;   /* slate-300 */
+  --text-muted:     #94a3b8;   /* slate-400 */
+  --text-faint:     #64748b;   /* slate-500 */
+  --text-inverse:   #0a0d1a;
+
+  --shadow-card:    0 4px 24px rgba(0,0,0,0.3);
+  --shadow-lg:      0 8px 32px rgba(0,0,0,0.5);
+
+  --scrollbar-track: #0a0d1a;
+  --scrollbar-thumb: #334155;
+  --scrollbar-hover: #475569;
+
+  --select-bg:      #1e293b;
+  --select-color:   #e2e8f0;
+
+  --chart-axis:     #94a3b8;
+  --chart-legend:   #cbd5e1;
+
+  --toast-bg:       rgba(15,18,37,0.9);
+}
+
 @layer base {
   * {
-    @apply border-slate-700/50;
+    border-color: var(--border-default);
   }
   body {
-    @apply bg-navy-950 text-slate-100;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
     font-family: 'DM Sans', system-ui, sans-serif;
   }
   h1, h2, h3, h4 {
@@ -16,123 +94,195 @@
 }
 
 @layer components {
+  /* ── Glass / Card ── */
   .glass-card {
-    @apply bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl;
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-default);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
   }
   .glass-card-hover {
-    @apply glass-card transition-all duration-300 hover:bg-slate-800/70 hover:border-slate-600/50 hover:shadow-2xl hover:-translate-y-0.5;
+    @apply glass-card transition-all duration-300;
+  }
+  .glass-card-hover:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-subtle);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
   }
   .module-card {
     @apply glass-card p-6 relative overflow-hidden;
   }
+
+  /* ── Buttons ── */
   .btn-primary {
-    @apply px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-navy-950 font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-amber-500/20 hover:shadow-amber-400/30 active:scale-95;
+    @apply px-5 py-2.5 bg-amber-500 hover:bg-amber-400 font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-amber-500/20 hover:shadow-amber-400/30 active:scale-95;
+    color: var(--text-inverse);
+  }
+  .dark .btn-primary {
+    color: #0a0d1a;
   }
   .btn-secondary {
-    @apply px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-100 font-medium rounded-xl transition-all duration-200 border border-slate-600;
+    @apply px-5 py-2.5 font-medium rounded-xl transition-all duration-200;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+  }
+  .btn-secondary:hover {
+    background: var(--bg-card-hover);
   }
   .btn-ghost {
-    @apply px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all duration-200;
+    @apply px-4 py-2 rounded-xl transition-all duration-200;
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover {
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
   }
   .btn-danger {
-    @apply px-5 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium rounded-xl transition-all duration-200 border border-red-500/30;
+    @apply px-5 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 font-medium rounded-xl transition-all duration-200 border border-red-500/30;
   }
+
+  /* ── Inputs ── */
   .input-field {
-    @apply w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200;
+    @apply w-full px-4 py-3 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50;
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
   }
+  .input-field::placeholder {
+    color: var(--text-faint);
+  }
+  select.input-field {
+    @apply appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 6.646a.5.5 0 0 1 .708 0L8 9.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+  select.input-field option {
+    background-color: var(--select-bg);
+    color: var(--select-color);
+    padding: 8px 12px;
+  }
+
+  /* ── Badges ── */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  .badge-sentinel {
-    @apply badge bg-sentinel-500/20 text-sentinel-400;
-  }
-  .badge-youthshield {
-    @apply badge bg-youthshield-500/20 text-youthshield-400;
-  }
-  .badge-blight {
-    @apply badge bg-blight-500/20 text-blight-400;
-  }
-  .badge-compass {
-    @apply badge bg-compass-500/20 text-compass-400;
-  }
-  .badge-warning {
-    @apply badge bg-amber-500/20 text-amber-400;
-  }
-  .badge-success {
-    @apply badge bg-emerald-500/20 text-emerald-400;
-  }
-  .badge-danger {
-    @apply badge bg-red-500/20 text-red-400;
-  }
+  .badge-sentinel   { @apply badge bg-sentinel-500/20 text-sentinel-600 dark:text-sentinel-400; }
+  .badge-youthshield { @apply badge bg-youthshield-500/20 text-youthshield-600 dark:text-youthshield-400; }
+  .badge-blight     { @apply badge bg-blight-500/20 text-blight-600 dark:text-blight-400; }
+  .badge-compass    { @apply badge bg-compass-500/20 text-compass-600 dark:text-compass-400; }
+  .badge-warning    { @apply badge bg-amber-500/20 text-amber-600 dark:text-amber-400; }
+  .badge-success    { @apply badge bg-emerald-500/20 text-emerald-600 dark:text-emerald-400; }
+  .badge-danger     { @apply badge bg-red-500/20 text-red-600 dark:text-red-400; }
+
+  /* ── Typography helpers ── */
   .stat-value {
     @apply text-3xl font-bold font-mono tracking-tight;
+    color: var(--text-primary);
   }
   .stat-label {
-    @apply text-sm text-slate-400 mt-1;
+    @apply text-sm mt-1;
+    color: var(--text-muted);
   }
   .section-title {
-    @apply text-2xl font-display font-bold text-white;
+    @apply text-2xl font-display font-bold;
+    color: var(--text-primary);
   }
   .page-header {
     @apply mb-8;
   }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-slate-700 rounded-full;
-  }
+
+  /* ── Scrollbar ── */
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 9999px; }
+}
+
+/* Global select options */
+select option {
+  background-color: var(--select-bg);
+  color: var(--select-color);
+  padding: 8px 12px;
 }
 
 /* Custom scrollbar for the whole app */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #0a0d1a;
-}
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
 /* Recharts custom styling */
 .recharts-cartesian-axis-tick-value {
-  fill: #94a3b8 !important;
+  fill: var(--chart-axis) !important;
   font-size: 12px;
 }
 .recharts-legend-item-text {
-  color: #cbd5e1 !important;
+  color: var(--chart-legend) !important;
 }
 
 /* Toast slide-in animation */
 @keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 /* Floating chat slide-up animation */
 @keyframes slideUpFade {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
+
+/* ══════════════════════════════════════════════════
+   THEME-AWARE UTILITY OVERRIDES
+   These remap the most-used dark-only Tailwind
+   classes so every page works in both modes.
+   ══════════════════════════════════════════════════ */
+
+/* Backgrounds */
+.bg-navy-950 { background-color: var(--bg-base); }
+.bg-navy-900 { background-color: var(--bg-surface); }
+.bg-navy-900\/80 { background-color: var(--bg-header); }
+.bg-navy-800 { background-color: var(--bg-elevated); }
+
+/* Sidebar & header card backgrounds */
+.bg-slate-800\/50 { background-color: var(--bg-card); }
+.bg-slate-800\/30 { background-color: var(--bg-card); }
+.bg-slate-800\/70 { background-color: var(--bg-card-hover); }
+.bg-slate-800 { background-color: var(--bg-elevated); }
+.bg-slate-700\/50 { background-color: var(--bg-card-hover); }
+
+/* Text */
+.text-white { color: var(--text-primary); }
+.text-slate-100 { color: var(--text-primary); }
+.text-slate-200 { color: var(--text-primary); }
+.text-slate-300 { color: var(--text-secondary); }
+.text-slate-400 { color: var(--text-muted); }
+.text-slate-500 { color: var(--text-faint); }
+.text-slate-600 { color: var(--text-faint); }
+
+/* Borders */
+.border-slate-700\/50 { border-color: var(--border-default); }
+.border-slate-800\/50 { border-color: var(--border-default); }
+.border-slate-600\/50 { border-color: var(--border-subtle); }
+.border-slate-600 { border-color: var(--border-subtle); }
+.border-slate-700 { border-color: var(--border-default); }
+.border-slate-800 { border-color: var(--border-default); }
+
+/* Hover states that reference dark palette */
+.hover\:text-white:hover { color: var(--text-primary); }
+.hover\:bg-slate-800\/50:hover { background-color: var(--bg-card-hover); }
+.hover\:bg-slate-700\/50:hover { background-color: var(--bg-card-hover); }
+.hover\:bg-slate-800:hover { background-color: var(--bg-elevated); }
+
+/* Placeholder */
+.placeholder-slate-500::placeholder { color: var(--text-faint); }
+
+/* Overlay / backdrop */
+.bg-black\/60 { background-color: var(--bg-overlay); }
+
+/* Toast */
+.bg-navy-900\/90 { background-color: var(--toast-bg); }
