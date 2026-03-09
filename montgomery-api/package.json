@@ -6,6 +6,7 @@
     "dev": "next dev -p 8000",
     "build": "next build",
     "start": "next start -p 8000",
+    "postinstall": "prisma generate",
     "seed": "npx tsx scripts/seed.ts",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
