@@ -1,0 +1,481 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTHENTICATION & RBAC ─────────────────────────────────────────────
+
+enum Role {
+  EXECUTIVE    // Mayor, CTO, Council Members — all modules, executive briefings
+  OPERATIONAL  // Shift Commander, Code Enforcement, CVI Worker, School Counselor, Planning Director
+  CITIZEN      // Public transparency portal — read-only, neighborhood-scoped
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String
+  role          Role     @default(CITIZEN)
+  title         String?  // e.g. "CTO", "Shift Commander", "Code Enforcement Officer"
+  department    String?  // e.g. "MPD", "City Planning", "Economic Development"
+  district      String?  // For district-scoped access
+  modules       String[] @default([]) // Allowed modules: sentinel, youthshield, blight, compass
+  isActive      Boolean  @default(true) @map("is_active")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    Int      @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ─── SENTINEL MGM (Module 1) ───────────────────────────────────────────
+
+model Incident {
+  id                  Int      @id @default(autoincrement())
+  incidentNumber      String?  @map("incident_number")
+  incidentTypeCode    String?  @map("incident_type_code")
+  incidentType        String?  @map("incident_type")
+  incidentCategory    String?  @map("incident_type_category")
+  address             String?
+  district            String?
+  shift               String?
+  latitude            Float?
+  longitude           Float?
+  h3Index             String?  @map("h3_index")
+  unitName            String?  @map("unit_name")
+  agencyName          String?  @map("agency_name")
+  cancelledPrior      String?  @map("cancelled_prior")
+  dispatchTime        String?  @map("dispatch_time")
+  turnoutTime         String?  @map("turnout_time")
+  travelTime          String?  @map("travel_time")
+  responseTime        String?  @map("response_time")
+  poapReceivedTs      BigInt?  @map("psap_received_ts")
+  unitDispatchedTs    BigInt?  @map("unit_dispatched_ts")
+  unitEnrouteTs       BigInt?  @map("unit_enroute_ts")
+  unitArrivalTs       BigInt?  @map("unit_arrival_ts")
+  unitClearedTs       BigInt?  @map("unit_cleared_ts")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("incidents")
+}
+
+model Call911 {
+  id                  Int    @id @default(autoincrement())
+  year                Int?
+  month               String?
+  callCategory        String? @map("call_category")
+  phoneServiceType    String? @map("phone_service_type")
+  callCountByPhone    Int?    @map("call_count_by_phone")
+  callOrigin          String? @map("call_origin")
+  callCountByOrigin   Int?    @map("call_count_by_origin")
+
+  @@map("calls_911")
+}
+
+model PoliceStation {
+  id          Int     @id @default(autoincrement())
+  address     String?
+  name        String? @map("facility_name")
+  category    String?
+  latitude    Float?
+  longitude   Float?
+
+  @@map("police_stations")
+}
+
+model FireStation {
+  id          Int     @id @default(autoincrement())
+  address     String?
+  name        String? @map("facility_name")
+  category    String?
+  latitude    Float?
+  longitude   Float?
+
+  @@map("fire_stations")
+}
+
+// ─── YOUTHSHIELD (Module 2) ─────────────────────────────────────────────
+
+model School {
+  id          Int     @id @default(autoincrement())
+  name        String?
+  address     String?
+  city        String?
+  telephone   String?
+  zip         String?
+  enrollment  Int?
+  level       String?
+  schoolType  String?  @map("school_type")
+  latitude    Float?
+  longitude   Float?
+
+  @@map("schools")
+}
+
+model CommunityCenter {
+  id            Int     @id @default(autoincrement())
+  facilityId    String? @map("facility_id")
+  name          String?
+  address       String?
+  operDays      String? @map("oper_days")
+  operHours     String? @map("oper_hours")
+  facilityType  String? @map("facility_type")
+  description   String?
+  parking       Int?    @map("num_parking")
+  restroom      String?
+  adaComply     String? @map("ada_comply")
+  playground    String?
+  basketball    String?
+  swimming      String?
+  latitude      Float?
+  longitude     Float?
+
+  @@map("community_centers")
+}
+
+model Park {
+  id            Int     @id @default(autoincrement())
+  facilityId    String? @map("facility_id")
+  name          String?
+  type          String?
+  address       String?
+  operDays      String? @map("oper_days")
+  operHours     String? @map("oper_hours")
+  parkArea      Float?  @map("park_area")
+  parkUrl       String? @map("park_url")
+  playground    String?
+  basketball    String?
+  soccer        String?
+  baseball      String?
+  softball      String?
+  tennis        String?
+  hiking        String?
+  fishing       String?
+  swimming      String?
+  latitude      Float?
+  longitude     Float?
+
+  @@map("parks")
+}
+
+model Library {
+  id          Int     @id @default(autoincrement())
+  branchName  String? @map("branch_name")
+  address     String?
+  latitude    Float?
+  longitude   Float?
+
+  @@map("libraries")
+}
+
+model DayCare {
+  id          Int     @id @default(autoincrement())
+  name        String?
+  address     String?
+  city        String?
+  zip         String?
+  latitude    Float?
+  longitude   Float?
+
+  @@map("daycares")
+}
+
+model EducationFacility {
+  id          Int     @id @default(autoincrement())
+  name        String?
+  address     String?
+  city        String?
+  telephone   String?
+  zip         String?
+  enrollment  Int?
+  level       String?
+  schoolType  String? @map("school_type")
+  latitude    Float?
+  longitude   Float?
+
+  @@map("education_facilities")
+}
+
+// ─── BLIGHT-TO-BRIGHT (Module 3) ────────────────────────────────────────
+
+model Nuisance {
+  id          Int      @id @default(autoincrement())
+  offenseNo   String?  @map("offense_no")
+  location    String?
+  remark      String?
+  parcelNo    String?  @map("parcel_no")
+  type        String?
+  date        BigInt?
+  district    String?
+  hearingDate String?  @map("hearing_date")
+  h3Index     String?  @map("h3_index")
+
+  @@map("nuisances")
+}
+
+model CodeViolation {
+  id              Int     @id @default(autoincrement())
+  offenseNum      String? @map("offense_num")
+  caseDate        String? @map("case_date")
+  caseType        String? @map("case_type")
+  caseStatus      String? @map("case_status")
+  lienStatus      String? @map("lien_status")
+  parcelNo        String? @map("parcel_no")
+  councilDistrict String? @map("council_district")
+  address         String?
+  year            Int?
+  month           Int?
+  latitude        Float?
+  longitude       Float?
+  h3Index         String? @map("h3_index")
+
+  @@map("code_violations")
+}
+
+model CityOwnedProperty {
+  id            Int     @id @default(autoincrement())
+  calcAcre      Float?  @map("calc_acre")
+  parcelNum     String? @map("parcel_num")
+  owner         String?
+  propAddress   String? @map("prop_address")
+  streetNum     String? @map("street_num")
+  streetName    String? @map("street_name")
+  neighborhood  String? @map("nbhd")
+  zoning        String?
+  appraisedVal  Float?  @map("appraised_val")
+  useType       String? @map("use_type")
+  devArea       String? @map("dev_area")
+  maintBy       String? @map("maint_by")
+  notes         String?
+  latitude      Float?
+  longitude     Float?
+  h3Index       String? @map("h3_index")
+
+  @@map("city_owned_properties")
+}
+
+model ServiceRequest311 {
+  id            Int      @id @default(autoincrement())
+  requestId     String?  @map("request_id")
+  createDate    String?  @map("create_date")
+  department    String?
+  requestType   String?  @map("request_type")
+  address       String?
+  district      String?
+  status        String?
+  closeDate     String?  @map("close_date")
+  origin        String?
+  latitude      Float?
+  longitude     Float?
+  year          Int?
+  h3Index       String?  @map("h3_index")
+
+  @@map("service_requests_311")
+}
+
+// ─── DATACENTER COMPASS (Module 4) ──────────────────────────────────────
+
+model ConstructionPermit {
+  id                Int     @id @default(autoincrement())
+  permitNo          String? @map("permit_no")
+  parcelNo          String? @map("parcel_no")
+  issuedDate        String? @map("issued_date")
+  expiredDate       String? @map("expired_date")
+  permitStatus      String? @map("permit_status")
+  permitCode        String? @map("permit_code")
+  zoning            String?
+  floodZone         String? @map("flood_zone")
+  permitDescription String? @map("permit_description")
+  projectType       String? @map("project_type")
+  estimatedCost     Float?  @map("estimated_cost")
+  totalFee          Float?  @map("total_fee")
+  ownerName         String? @map("owner_name")
+  useType           String? @map("use_type")
+  jobDescription    String? @map("job_description")
+  year              Int?
+  month             Int?
+  districtCouncil   String? @map("district_council")
+  contractorName    String? @map("contractor_name")
+  physicalAddress   String? @map("physical_address")
+  latitude          Float?
+  longitude         Float?
+
+  @@map("construction_permits")
+}
+
+model BusinessLicense {
+  id            Int     @id @default(autoincrement())
+  companyName   String? @map("company_name")
+  dba           String?
+  pvYear        Int?    @map("pv_year")
+  pvEffDate     String? @map("pv_eff_date")
+  pvExpire      String? @map("pv_expire")
+  scCode        String? @map("sc_code")
+  scName        String? @map("sc_name")
+  pvDesc        String? @map("pv_desc")
+  fullAddress   String? @map("full_address")
+  zip           String?
+  city          String?
+  latitude      Float?
+  longitude     Float?
+
+  @@map("business_licenses")
+}
+
+model DailyPopulationTrend {
+  id            Int     @id @default(autoincrement())
+  date          String?
+  type          String?
+  currentYear   Int?    @map("current_year")
+  previousYear  Int?    @map("previous_year")
+
+  @@map("daily_population_trends")
+}
+
+model FoodScore {
+  id              Int     @id @default(autoincrement())
+  establishment   String?
+  address         String?
+  date            String?
+  score           Int?
+  latitude        Float?
+  longitude       Float?
+
+  @@map("food_scores")
+}
+
+// ─── SHARED / CROSS-MODULE ──────────────────────────────────────────────
+
+model CouncilDistrict {
+  id        Int     @id @default(autoincrement())
+  distId    Int?    @map("dist_id")
+  name      String?
+  phone     String?
+  email     String?
+  address   String?
+  link      String?
+
+  @@map("council_districts")
+}
+
+model PointOfInterest {
+  id          Int     @id @default(autoincrement())
+  name        String?
+  address     String?
+  type        String?
+  latitude    Float?
+  longitude   Float?
+
+  @@map("points_of_interest")
+}
+
+// ─── AI / ANALYSIS RESULTS ──────────────────────────────────────────────
+
+model ForceMultiplierZone {
+  id              Int      @id @default(autoincrement())
+  h3Index         String   @map("h3_index")
+  score           Float
+  incidentCount   Int      @map("incident_count")
+  district        String?
+  shift           String?
+  riskLevel       String?  @map("risk_level")
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+
+  @@map("force_multiplier_zones")
+}
+
+model BlightScore {
+  id              Int      @id @default(autoincrement())
+  parcelNo        String?  @map("parcel_no")
+  address         String?
+  score           Float
+  nuisanceCount   Int      @map("nuisance_count")
+  violationCount  Int      @map("violation_count")
+  h3Index         String?  @map("h3_index")
+  district        String?
+  riskLevel       String?  @map("risk_level")
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+
+  @@map("blight_scores")
+}
+
+model YouthRiskZone {
+  id              Int      @id @default(autoincrement())
+  h3Index         String   @map("h3_index")
+  riskScore       Float    @map("risk_score")
+  incidentsNearSchools Int @map("incidents_near_schools")
+  gapScore        Float    @map("gap_score")
+  programCount    Int      @map("program_count")
+  district        String?
+  riskLevel       String?  @map("risk_level")
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+
+  @@map("youth_risk_zones")
+}
+
+model CrossModuleAlert {
+  id            Int      @id @default(autoincrement())
+  alertType     String   @map("alert_type")
+  severity      String
+  title         String
+  description   String
+  modules       String[] // which modules are involved
+  district      String?
+  h3Index       String?  @map("h3_index")
+  recommendation String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  acknowledged  Boolean  @default(false)
+
+  @@map("cross_module_alerts")
+}
+
+model AiAnalysis {
+  id          Int      @id @default(autoincrement())
+  module      String   // sentinel, youthshield, blight, compass
+  analysisType String  @map("analysis_type")
+  prompt      String
+  response    String
+  model       String   @default("gemini-2.5-flash")
+  h3Index     String?  @map("h3_index")
+  district    String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("ai_analyses")
+}
+
+model ExecutiveBriefing {
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String
+  sentinelSummary   String? @map("sentinel_summary")
+  youthShieldSummary String? @map("youthshield_summary")
+  blightSummary     String? @map("blight_summary")
+  compassSummary    String? @map("compass_summary")
+  crossModuleInsights String? @map("cross_module_insights")
+  generatedBy String   @default("gemini-2.5-flash") @map("generated_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("executive_briefings")
+}

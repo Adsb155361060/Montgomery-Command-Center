@@ -1,0 +1,36 @@
+{
+  "name": "montgomery-command-center-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 8000",
+    "build": "next build",
+    "start": "next start -p 8000",
+    "seed": "npx tsx scripts/seed.ts",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@prisma/client": "^6.3.0",
+    "bcryptjs": "^3.0.3",
+    "csv-parse": "^5.6.0",
+    "h3-js": "^4.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "prisma": "^6.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
