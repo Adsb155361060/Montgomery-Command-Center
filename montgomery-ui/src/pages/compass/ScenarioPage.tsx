@@ -27,7 +27,10 @@ export default function ScenarioPage() {
 
   const raw = action.data as any;
   // Unwrap — AI might nest under scenarioResult, simulation, data, etc.
-  const d = raw?.scenarioResult || raw?.simulation || raw?.scenario || raw?.data?.scenarioResult || raw?.data?.simulation || raw?.data || raw;
+  // IMPORTANT: Don't match raw?.scenario — that's the scenario description string, not a data wrapper
+  const d = raw?.scenarioResult || raw?.simulation ||
+    (raw?.scenario && typeof raw.scenario === 'object' ? raw.scenario : null) ||
+    raw?.data?.scenarioResult || raw?.data?.simulation || raw?.data || raw;
   const hasData = d && typeof d === 'object' && Object.keys(d).length > 0;
 
   const projectTypes = [
@@ -38,73 +41,117 @@ export default function ScenarioPage() {
     { value: 'infrastructure', label: 'Infrastructure' },
   ];
 
+  /* ─── Helper: resolve any value to a number (handles Monte Carlo {mean:X} objects, dollar strings, etc.) ─── */
+  function resolveNumeric(val: any): number {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      const p = parseDollarStr(val);
+      if (!isNaN(p) && p > 0) return p;
+      const n = parseFloat(val.replace(/[^0-9.-]/g, ''));
+      return isNaN(n) ? 0 : n;
+    }
+    if (typeof val === 'object') {
+      // Monte Carlo: {mean: X, confidenceInterval95: {...}}
+      if ('mean' in val) return resolveNumeric(val.mean);
+      if ('value' in val) return resolveNumeric(val.value);
+      if ('total' in val) return resolveNumeric(val.total);
+      if ('amount' in val) return resolveNumeric(val.amount);
+      if ('estimate' in val) return resolveNumeric(val.estimate);
+    }
+    return 0;
+  }
+
   /* ─── Resilient field extraction ─── */
-  // Use deep-find to locate values anywhere in the nested AI response
 
   // --- Total Revenue / Tax Revenue ---
-  const taxRevenueObj = pick(d, 'taxRevenue', 'taxImpact');
+  const taxRevenueObj = pick(d, 'taxRevenue', 'taxImpact', 'fiscalImpact', 'revenueProjection');
   const totalRevenue = (() => {
-    // Try flat top-level numbers first
-    const flat = Number(pick(d, 'totalRevenue', 'totalTaxRevenue', 'estimatedRevenue', 'fiscalImpact', 'totalEconomicImpact')) || 0;
+    // Try flat top-level numbers
+    const flat = resolveNumeric(pick(d, 'totalRevenue', 'totalTaxRevenue', 'estimatedRevenue', 'fiscalImpact', 'totalEconomicImpact', 'annualTaxRevenue'));
     if (flat > 0) return flat;
-    // Try nested taxRevenue object with dollar strings
+    // Try nested taxRevenue object
     if (taxRevenueObj && typeof taxRevenueObj === 'object') {
-      const annualStr = String(pick(taxRevenueObj, 'annual', 'annualRevenue', 'total', 'totalAnnual', 'postAbatement') || '');
-      const parsed = parseDollarStr(annualStr);
-      if (!isNaN(parsed) && parsed > 0) return parsed;
+      // Try specific sub-fields
+      for (const key of ['annual', 'annualRevenue', 'total', 'totalAnnual', 'postAbatement', 'propertyTax', 'salesTax']) {
+        const val = (taxRevenueObj as any)[key];
+        if (val != null) {
+          const n = resolveNumeric(val);
+          if (n > 0) return n;
+        }
+      }
+      // Try first numeric-like value in the object
+      for (const [, v] of Object.entries(taxRevenueObj)) {
+        const n = resolveNumeric(v);
+        if (n > 0) return n;
+      }
     }
-    // Deep-find any revenue value
-    const deepRev = deepFind(d, /^(totalRevenue|annualRevenue|taxRevenue|fiscalImpact)$/i);
-    if (typeof deepRev === 'number' && deepRev > 0) return deepRev;
-    if (typeof deepRev === 'string') { const p = parseDollarStr(deepRev); if (!isNaN(p) && p > 0) return p; }
+    if (typeof taxRevenueObj === 'string') return resolveNumeric(taxRevenueObj);
+    // Deep-find any revenue value anywhere in the response
+    for (const pattern of [/revenue/i, /tax.*annual/i, /fiscal/i]) {
+      const found = deepFind(d, pattern);
+      if (found != null) {
+        const n = resolveNumeric(found);
+        if (n > 0) return n;
+      }
+    }
     return 0;
   })();
   const taxRevenueDisplay = (() => {
     if (totalRevenue > 0) return fmtDollars(totalRevenue);
-    // Show the string value if it exists
+    // Show raw string if available
     if (taxRevenueObj && typeof taxRevenueObj === 'object') {
-      return String(pick(taxRevenueObj, 'annual', 'total', 'postAbatement') || '');
+      const s = pick(taxRevenueObj, 'annual', 'total', 'postAbatement');
+      if (s && typeof s === 'string') return s;
     }
     if (typeof taxRevenueObj === 'string') return taxRevenueObj;
+    // Last resort: find any dollar string in the data
+    const anyDollar = deepFind(d, /revenue|tax/i);
+    if (typeof anyDollar === 'string' && /\$/.test(anyDollar)) return anyDollar;
     return '—';
   })();
 
   // --- Jobs Created ---
-  const jobImpactObj = pick(d, 'jobImpact', 'jobCreation', 'employment', 'laborMarket');
+  const jobImpactObj = pick(d, 'jobImpact', 'jobCreation', 'employment', 'laborMarket', 'jobs');
   const jobsCreated = (() => {
-    const flat = Number(pick(d, 'jobsCreated', 'totalJobs', 'jobCreation', 'directJobs')) || 0;
+    // Try flat top-level
+    const flat = resolveNumeric(pick(d, 'jobsCreated', 'totalJobs', 'totalJobsCreated', 'directJobs'));
     if (flat > 0) return flat;
-    // Deep-sum all "jobs", "mean" under job-related sections
+    // Try structured job impact object
     if (jobImpactObj && typeof jobImpactObj === 'object') {
-      // Try structured: constructionPhase.jobs + operationalPhase.jobs + secondaryJobs.estimated
       let total = 0;
-      const cp = pick(jobImpactObj, 'constructionPhase', 'constructionJobs', 'construction');
-      const op = pick(jobImpactObj, 'operationalPhase', 'permanentJobs', 'operational');
-      const sec = pick(jobImpactObj, 'secondaryJobs', 'indirectJobs', 'secondary');
+      const cp = pick(jobImpactObj, 'constructionPhase', 'constructionJobs', 'construction', 'temporary');
+      const op = pick(jobImpactObj, 'operationalPhase', 'permanentJobs', 'operational', 'permanent');
+      const sec = pick(jobImpactObj, 'secondaryJobs', 'indirectJobs', 'secondary', 'indirect');
       for (const phase of [cp, op, sec]) {
+        if (phase == null) continue;
         if (typeof phase === 'number') { total += phase; continue; }
-        if (phase && typeof phase === 'object') {
-          total += Number(phase.jobs ?? phase.mean ?? phase.estimated ?? phase.count ?? 0);
+        if (typeof phase === 'object') {
+          // Handle nested: {jobs: X} or {jobs: {mean: X}} or {estimated: X} or {count: X}
+          const jobVal = phase.jobs ?? phase.mean ?? phase.estimated ?? phase.count ?? phase.total ?? phase.number;
+          total += resolveNumeric(jobVal);
         }
       }
       if (total > 0) return total;
+      // If the object has a total/mean directly
+      const directTotal = resolveNumeric(pick(jobImpactObj, 'total', 'totalJobs', 'mean'));
+      if (directTotal > 0) return directTotal;
     }
-    // Deep-sum all fields named "jobs" or "mean" under job-related keys
-    const deepJobs = deepSum(d, /^(jobs|totalJobs|jobsCreated)$/);
+    // Deep-sum all fields named "jobs" anywhere
+    const deepJobs = deepSum(d, /^(jobs|totalJobs|jobsCreated|estimated|permanentJobs|constructionJobs|operationalJobs)$/i);
     if (deepJobs > 0) return deepJobs;
-    // Try deep-find for a mean job count
-    const meanJobs = deepFind(d, /^(permanentJobs|totalPermanentJobs)$/);
-    if (typeof meanJobs === 'number') return meanJobs;
-    if (meanJobs && typeof meanJobs === 'object') return Number(meanJobs.mean ?? 0);
-    return 0;
+    // Deep-find for any job-related number
+    const foundJobs = deepFind(d, /jobs|employment|workers/i);
+    return resolveNumeric(foundJobs);
   })();
 
   // --- ROI / Confidence ---
-  const roi = Number(pick(d, 'roi', 'returnOnInvestment', 'roiPercent', 'estimatedROI')) || 0;
-  const confidenceLevel = pick(d, 'confidenceLevel', 'confidence', 'confidenceRating', 'confidenceScore');
+  const roi = resolveNumeric(pick(d, 'roi', 'returnOnInvestment', 'roiPercent', 'estimatedROI'));
+  const confidenceLevel = pick(d, 'confidenceLevel', 'confidence', 'confidenceRating', 'confidenceScore')
+    || deepFind(d, /^confidence/i);
 
   // --- Multiplier ---
-  const multiplier = Number(pick(d, 'fiscalMultiplier', 'multiplier', 'economicMultiplier', 'impactMultiplier')) || 0;
+  const multiplier = resolveNumeric(pick(d, 'fiscalMultiplier', 'multiplier', 'economicMultiplier', 'impactMultiplier'));
 
   // --- Assumptions ---
   const assumptions: any[] = (() => {
@@ -214,21 +261,21 @@ export default function ScenarioPage() {
     if (!data) return null;
     if (typeof data === 'string') {
       return (
-        <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{icon} {title}</h4>
-          <p className="text-sm text-slate-300">{data}</p>
+        <div className="p-5 bg-slate-800/30 rounded-xl border border-slate-700/30">
+          <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">{icon} {title}</h4>
+          <p className="text-sm text-slate-300 leading-relaxed">{data}</p>
         </div>
       );
     }
     if (typeof data === 'object') {
       const entries = Object.entries(data).filter(([, v]) => v != null && v !== '');
       return (
-        <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{icon} {title}</h4>
-          <div className="space-y-1.5">
+        <div className="p-5 bg-slate-800/30 rounded-xl border border-slate-700/30">
+          <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">{icon} {title}</h4>
+          <div className="space-y-2.5">
             {entries.map(([k, v]) => (
-              <div key={k} className="flex justify-between text-xs gap-2">
-                <span className="text-slate-500">{labelify(k)}</span>
+              <div key={k} className="flex justify-between text-sm gap-3">
+                <span className="text-slate-400">{labelify(k)}</span>
                 <span className="text-slate-200 font-medium text-right">
                   {typeof v === 'number' ? (v > 10000 ? fmtDollars(v) : v.toLocaleString()) : typeof v === 'object' ? <SmartValue label={k} value={v} /> : String(v)}
                 </span>
@@ -305,12 +352,12 @@ export default function ScenarioPage() {
 
               {/* Simulation Parameters (if present) */}
               {simulationParams && typeof simulationParams === 'object' && (
-                <div className="glass-card p-5">
-                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Simulation Parameters</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5">
+                <div className="glass-card p-6">
+                  <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Simulation Parameters</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
                     {Object.entries(simulationParams).filter(([, v]) => v != null && v !== '').map(([k, v]) => (
-                      <div key={k} className="flex items-baseline gap-2 text-xs">
-                        <span className="text-slate-500 font-medium">{labelify(k)}:</span>
+                      <div key={k} className="flex items-baseline gap-2 text-sm">
+                        <span className="text-slate-400 font-medium">{labelify(k)}:</span>
                         <span className={`font-medium ${isDollarKey(k) ? 'text-emerald-400 font-mono' : 'text-slate-200'}`}>
                           {typeof v === 'number' && isDollarKey(k) ? fmtDollars(v)
                             : typeof v === 'number' ? v.toLocaleString()
@@ -324,12 +371,12 @@ export default function ScenarioPage() {
 
               {/* Base Data Snapshot */}
               {baseData && typeof baseData === 'object' && (
-                <div className="glass-card p-5">
-                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Base Data Snapshot</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5">
+                <div className="glass-card p-6">
+                  <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Base Data Snapshot</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
                     {Object.entries(baseData).filter(([, v]) => v != null && v !== '').map(([k, v]) => (
-                      <div key={k} className="flex items-baseline gap-2 text-xs">
-                        <span className="text-slate-500 font-medium">{labelify(k)}:</span>
+                      <div key={k} className="flex items-baseline gap-2 text-sm">
+                        <span className="text-slate-400 font-medium">{labelify(k)}:</span>
                         <span className={`font-medium ${isDollarKey(k) ? 'text-emerald-400 font-mono' : 'text-slate-200'}`}>
                           {typeof v === 'number' && isDollarKey(k) ? fmtDollars(v)
                             : typeof v === 'number' ? v.toLocaleString()
@@ -364,7 +411,7 @@ export default function ScenarioPage() {
                   </ResponsiveContainer>
                   {/* Also show projection data as a table for readability */}
                   <div className="mt-4 overflow-x-auto">
-                    <table className="w-full text-xs">
+                    <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-700/30">
                           <th className="text-left py-1.5 px-2 text-slate-500 font-medium">Period</th>
@@ -397,7 +444,7 @@ export default function ScenarioPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {Object.entries(impacts).filter(([, v]) => v != null && v !== '').map(([key, val]: any) => (
                       <div key={key} className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
-                        <span className="text-xs text-slate-400">{labelify(key)}</span>
+                        <span className="text-sm text-slate-400">{labelify(key)}</span>
                         <span className="text-sm font-mono text-compass-400 font-medium">
                           {typeof val === 'number' ? (val > 10000 ? formatCurrency(val) : formatNumber(val))
                             : typeof val === 'object' ? <SmartValue label={key} value={val} /> : val}
@@ -424,8 +471,8 @@ export default function ScenarioPage() {
                   <div className="space-y-1.5">
                     {assumptions.map((a: any, i: number) => (
                       <div key={i} className="flex items-start gap-2">
-                        <span className="text-slate-500 mt-0.5 text-xs">•</span>
-                        <p className="text-xs text-slate-400">{typeof a === 'string' ? a : smartText(a)}</p>
+                        <span className="text-slate-500 mt-0.5 text-sm">•</span>
+                        <p className="text-sm text-slate-400 leading-relaxed">{typeof a === 'string' ? a : smartText(a)}</p>
                       </div>
                     ))}
                   </div>
@@ -440,7 +487,7 @@ export default function ScenarioPage() {
                     {riskFactors.map((r: any, i: number) => (
                       <div key={i} className="flex items-start gap-2">
                         <span className="text-amber-500 mt-0.5">⚠</span>
-                        <p className="text-xs text-slate-300">{typeof r === 'string' ? r : (pick(r, 'description', 'text', 'risk', 'factor', 'name', 'title') || smartText(r))}</p>
+                        <p className="text-sm text-slate-300 leading-relaxed">{typeof r === 'string' ? r : (pick(r, 'description', 'text', 'risk', 'factor', 'name', 'title') || smartText(r))}</p>
                       </div>
                     ))}
                   </div>

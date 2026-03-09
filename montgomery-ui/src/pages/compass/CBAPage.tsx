@@ -201,9 +201,9 @@ export default function CBAPage() {
                     <p className="text-sm font-semibold text-compass-300">
                       Community Benefit Agreement — {projectName}
                     </p>
-                    {summary && <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{typeof summary === 'string' ? summary : smartText(summary)}</p>}
-                    {d.negotiationDate && <p className="text-[10px] text-slate-500 mt-2">Framework v{d.cbaFrameworkVersion || '1.0'} • Negotiation date: {d.negotiationDate}</p>}
-                    {directContrib?.fundingSchedule && <p className="text-[10px] text-compass-400 mt-1">{directContrib.fundingSchedule}</p>}
+                    {summary && <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">{typeof summary === 'string' ? summary : smartText(summary)}</p>}
+                    {d.negotiationDate && <p className="text-xs text-slate-500 mt-2">Framework v{d.cbaFrameworkVersion || '1.0'} • Negotiation date: {d.negotiationDate}</p>}
+                    {directContrib?.fundingSchedule && <p className="text-sm text-compass-400 mt-1">{directContrib.fundingSchedule}</p>}
                   </div>
                 </div>
               </div>
@@ -266,13 +266,13 @@ export default function CBAPage() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <h4 className="text-sm font-medium text-slate-200">{title || `Component ${i + 1}`}</h4>
-                                {desc && <p className="text-xs text-slate-400 mt-1 leading-relaxed">{desc}</p>}
-                                {c.comparableCity && <p className="text-[10px] text-slate-500 mt-1">Comparable: {c.comparableCity}</p>}
+                                {desc && <p className="text-sm text-slate-400 mt-1 leading-relaxed">{desc}</p>}
+                                {c.comparableCity && <p className="text-xs text-slate-500 mt-1">Comparable: {c.comparableCity}</p>}
                                 {/* Render any extra fields */}
                                 {extraEntries.length > 0 && (
                                   <div className="mt-2 space-y-1">
                                     {extraEntries.map(([k, v]) => (
-                                      <div key={k} className="text-xs">
+                                      <div key={k} className="text-sm">
                                         <span className="text-slate-500 font-medium">{labelify(k)}: </span>
                                         <span className="text-slate-300">{typeof v === 'object' ? <SmartValue label={k} value={v} /> : String(v)}</span>
                                       </div>
@@ -320,7 +320,7 @@ export default function CBAPage() {
                             if (typeof val !== 'object') {
                               return (
                                 <div key={key} className="sm:col-span-2 p-3 bg-compass-500/10 rounded-lg border border-compass-500/20">
-                                  <p className="text-xs text-compass-300"><strong>{labelify(key)}:</strong> {String(val)}</p>
+                                  <p className="text-sm text-compass-300"><strong>{labelify(key)}:</strong> {String(val)}</p>
                                 </div>
                               );
                             }
@@ -332,7 +332,7 @@ export default function CBAPage() {
                                   {Object.entries(val)
                                     .filter(([, v]) => v !== null && v !== undefined && v !== '')
                                     .map(([k2, v2]) => (
-                                      <div key={k2} className="flex justify-between text-xs gap-2">
+                                      <div key={k2} className="flex justify-between text-sm gap-2">
                                         <span className="text-slate-400">{labelify(k2)}</span>
                                         <span className={`text-slate-200 font-mono text-right ${
                                           k2.toLowerCase().includes('loss') || k2.toLowerCase().includes('foregone')
@@ -371,7 +371,7 @@ export default function CBAPage() {
                       {/* Partners */}
                       {trainingPartners.length > 0 && (
                         <div className="mt-3">
-                          <h5 className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-2">Training Partners</h5>
+                          <h5 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Training Partners</h5>
                           <div className="flex flex-wrap gap-2">
                             {trainingPartners.map((p: any, i: number) => (
                               <span key={i} className="px-3 py-1.5 bg-blue-500/10 text-blue-300 text-xs rounded-full border border-blue-500/20">
@@ -385,18 +385,18 @@ export default function CBAPage() {
                       {/* Programs */}
                       {trainingPrograms.length > 0 && (
                         <div>
-                          <h5 className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-2">Training Programs</h5>
+                          <h5 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Training Programs</h5>
                           <div className="space-y-2">
                             {trainingPrograms.map((p: any, i: number) => (
                               <div key={i} className="p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
                                 <h6 className="text-sm font-medium text-slate-200">
                                   {typeof p === 'string' ? p : (p.programName || p.name || p.title || `Program ${i + 1}`)}
                                 </h6>
-                                {p.description && <p className="text-xs text-slate-400 mt-1">{p.description}</p>}
+                                {p.description && <p className="text-sm text-slate-400 mt-1">{p.description}</p>}
                                 <div className="flex flex-wrap gap-3 mt-1.5">
-                                  {p.targetParticipants && <span className="text-[10px] text-slate-500">👥 {p.targetParticipants}</span>}
-                                  {p.duration && <span className="text-[10px] text-slate-500">⏱ {p.duration}</span>}
-                                  {p.fundingSource && <span className="text-[10px] text-compass-400">💰 {p.fundingSource}</span>}
+                                  {p.targetParticipants && <span className="text-xs text-slate-500">👥 {p.targetParticipants}</span>}
+                                  {p.duration && <span className="text-xs text-slate-500">⏱ {p.duration}</span>}
+                                  {p.fundingSource && <span className="text-xs text-compass-400">💰 {p.fundingSource}</span>}
                                 </div>
                               </div>
                             ))}
@@ -407,20 +407,20 @@ export default function CBAPage() {
                       {/* Hiring Targets */}
                       {(workforce.constructionPhase || workforce.operationalPhase || workforce.localHiringTargets) && (
                         <div>
-                          <h5 className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-2">Local Hiring Targets</h5>
+                          <h5 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Local Hiring Targets</h5>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {(workforce.constructionPhase || workforce.localHiringTargets?.constructionPhase) && (
                               <div className="p-3 bg-slate-800/30 rounded-lg text-center">
                                 <Briefcase className="w-5 h-5 text-amber-400 mx-auto mb-1" />
                                 <div className="text-sm font-bold text-slate-200">{workforce.constructionPhase || workforce.localHiringTargets?.constructionPhase}</div>
-                                <div className="text-[10px] text-slate-500">Construction Phase</div>
+                                <div className="text-xs text-slate-500">Construction Phase</div>
                               </div>
                             )}
                             {(workforce.operationalPhase || workforce.localHiringTargets?.operationalPhase) && (
                               <div className="p-3 bg-slate-800/30 rounded-lg text-center">
                                 <Building className="w-5 h-5 text-compass-400 mx-auto mb-1" />
                                 <div className="text-sm font-bold text-slate-200">{workforce.operationalPhase || workforce.localHiringTargets?.operationalPhase}</div>
-                                <div className="text-[10px] text-slate-500">Operational Phase</div>
+                                <div className="text-xs text-slate-500">Operational Phase</div>
                               </div>
                             )}
                           </div>
@@ -467,7 +467,7 @@ export default function CBAPage() {
                     <div className="px-5 pb-5 space-y-2 border-t border-slate-700/30 mt-3">
                       {negotiationPoints.map((point: any, i: number) => (
                         <div key={i} className="flex gap-3 items-start">
-                          <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] font-bold text-emerald-400 flex-shrink-0 mt-0.5">{i + 1}</span>
+                          <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0 mt-0.5">{i + 1}</span>
                           <p className="text-xs text-slate-300 leading-relaxed">
                             {typeof point === 'string' ? point : (point.text || point.description || point.point || point.title || point.name || smartText(point))}
                           </p>
@@ -507,7 +507,7 @@ export default function CBAPage() {
                             {c.keyTerms && Array.isArray(c.keyTerms) && (
                               <div className="flex flex-wrap gap-1.5 mt-2">
                                 {c.keyTerms.map((t: string, j: number) => (
-                                  <span key={j} className="px-2 py-0.5 bg-purple-500/10 text-purple-300 text-[10px] rounded-full border border-purple-500/20">
+                                  <span key={j} className="px-2 py-0.5 bg-purple-500/10 text-purple-300 text-xs rounded-full border border-purple-500/20">
                                     {typeof t === 'string' ? t : smartText(t)}
                                   </span>
                                 ))}

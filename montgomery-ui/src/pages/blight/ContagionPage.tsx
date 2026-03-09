@@ -49,7 +49,7 @@ function renderAllFields(obj: any, excludeKeys: Set<string>) {
   return (
     <div className="space-y-1.5 mt-2">
       {entries.map(([k, v]) => (
-        <div key={k} className="text-xs">
+        <div key={k} className="text-sm">
           <span className="text-slate-500 font-medium">{labelify(k)}: </span>
           <span className="text-slate-300">
             {typeof v === 'object' ? <SmartValue label={k} value={v} /> : String(v)}
@@ -166,7 +166,7 @@ export default function ContagionPage() {
                 <option key={d.value} value={d.value}>{d.label}</option>
               ))}
             </select>
-            <p className="text-[10px] text-slate-600 mt-1">Select a district or run citywide analysis</p>
+            <p className="text-xs text-slate-600 mt-1">Select a district or run citywide analysis</p>
           </div>
 
           <div>
@@ -222,7 +222,7 @@ export default function ContagionPage() {
                 <div className="glass-card p-6">
                   <h3 className="text-sm font-semibold text-slate-300 mb-4">Contagion Zones</h3>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+                    <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-700/50 text-slate-400">
                           <th className="text-left py-2 pr-3">#</th>
@@ -240,7 +240,7 @@ export default function ContagionPage() {
                             <td className="py-2.5 pr-3">
                               <div className="text-slate-200 font-medium">{z.label || `Zone ${i + 1}`}</div>
                               {z.subLabel && z.label && z.subLabel !== z.label && (
-                                <div className="text-[10px] text-slate-500">{z.subLabel}</div>
+                                <div className="text-xs text-slate-500">{z.subLabel}</div>
                               )}
                             </td>
                             <td className="py-2.5 px-2 text-center">
@@ -284,10 +284,10 @@ export default function ContagionPage() {
                           <div className="flex items-center justify-between mb-2">
                             <h4 className="text-sm font-medium text-slate-200">{h.area || `Hotspot ${i + 1}`}</h4>
                             {h.urgency && (
-                              <span className="text-[10px] uppercase font-bold tracking-wider">{h.urgency}</span>
+                              <span className="text-xs uppercase font-bold tracking-wider">{h.urgency}</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-4 text-[11px]">
+                          <div className="flex items-center gap-4 text-sm">
                             {h.density != null && (
                               <span className="text-slate-400">Density: <strong className="text-slate-200">{h.density}</strong></span>
                             )}
@@ -324,7 +324,7 @@ export default function ContagionPage() {
                               <span className="text-xs text-emerald-400 font-mono">{s.parcels} parcels remediated</span>
                             )}
                           </div>
-                          {s.improvement && <p className="text-xs text-slate-400 mt-1">{s.improvement}</p>}
+                          {s.improvement && <p className="text-sm text-slate-400 mt-1">{s.improvement}</p>}
                           {renderAllFields(s.raw, usedKeys)}
                         </div>
                       );
@@ -345,7 +345,7 @@ export default function ContagionPage() {
                       if (typeof r === 'string') {
                         return (
                           <div key={i} className="flex gap-3 items-start p-3 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                            <span className="w-6 h-6 rounded-full bg-blight-500/20 flex items-center justify-center text-[10px] font-bold text-blight-400 flex-shrink-0 mt-0.5">{i + 1}</span>
+                            <span className="w-6 h-6 rounded-full bg-blight-500/20 flex items-center justify-center text-xs font-bold text-blight-400 flex-shrink-0 mt-0.5">{i + 1}</span>
                             <Markdown size="sm">{r}</Markdown>
                           </div>
                         );
@@ -401,13 +401,13 @@ export default function ContagionPage() {
                                 </h4>
                                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                                   {typeof severity === 'number' && severity > 0 && (
-                                    <span className="text-[10px] text-slate-500">
+                                    <span className="text-xs text-slate-500">
                                       Severity: <strong className={severity >= 80 ? 'text-red-400' : severity >= 50 ? 'text-amber-400' : 'text-emerald-400'}>{severity}</strong>
                                     </span>
                                   )}
-                                  {reuseType && <span className="text-[10px] text-compass-400">{reuseType}</span>}
+                                  {reuseType && <span className="text-xs text-compass-400">{reuseType}</span>}
                                   {viability != null && (
-                                    <span className={`text-[10px] font-bold ${Number(viability) >= 70 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                    <span className={`text-xs font-bold ${Number(viability) >= 70 ? 'text-emerald-400' : 'text-amber-400'}`}>
                                       {viability}% viable
                                     </span>
                                   )}
@@ -415,7 +415,7 @@ export default function ContagionPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                              <span className="text-[10px] text-slate-600">{isExpanded ? 'collapse' : 'details'}</span>
+                              <span className="text-xs text-slate-600">{isExpanded ? 'collapse' : 'details'}</span>
                               {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                             </div>
                           </button>
@@ -426,8 +426,8 @@ export default function ContagionPage() {
                               {/* Market Momentum Impact */}
                               {momentum && (
                                 <div className="p-3 bg-slate-800/40 rounded-lg border-l-2 border-l-amber-500">
-                                  <h5 className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider mb-1.5">Market Momentum Impact</h5>
-                                  <p className="text-xs text-slate-300 leading-relaxed">{String(momentum)}</p>
+                                  <h5 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1.5">Market Momentum Impact</h5>
+                                  <p className="text-sm text-slate-300 leading-relaxed">{String(momentum)}</p>
                                 </div>
                               )}
 
@@ -435,7 +435,7 @@ export default function ContagionPage() {
                               {reuseType && (
                                 <div className="p-3 bg-slate-800/40 rounded-lg">
                                   <div className="flex items-center justify-between mb-2">
-                                    <h5 className="text-[10px] font-semibold text-compass-400 uppercase tracking-wider">Reuse Option</h5>
+                                    <h5 className="text-xs font-semibold text-compass-400 uppercase tracking-wider">Reuse Option</h5>
                                     {viability != null && (
                                       <div className="flex items-center gap-2">
                                         <div className="w-24 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
@@ -452,7 +452,7 @@ export default function ContagionPage() {
                                   </div>
                                   <p className="text-sm font-medium text-slate-200 mb-1">{reuseType}</p>
                                   {justification && (
-                                    <p className="text-xs text-slate-400 leading-relaxed">{justification}</p>
+                                    <p className="text-sm text-slate-400 leading-relaxed">{justification}</p>
                                   )}
                                 </div>
                               )}
@@ -460,8 +460,8 @@ export default function ContagionPage() {
                               {/* Cascade Effect */}
                               {cascade && (
                                 <div className="p-3 bg-blight-500/5 rounded-lg border border-blight-500/10">
-                                  <h5 className="text-[10px] font-semibold text-blight-400 uppercase tracking-wider mb-1.5">Cascade Effect</h5>
-                                  <p className="text-xs text-slate-300 leading-relaxed">{String(cascade)}</p>
+                                  <h5 className="text-xs font-semibold text-blight-400 uppercase tracking-wider mb-1.5">Cascade Effect</h5>
+                                  <p className="text-sm text-slate-300 leading-relaxed">{String(cascade)}</p>
                                 </div>
                               )}
 

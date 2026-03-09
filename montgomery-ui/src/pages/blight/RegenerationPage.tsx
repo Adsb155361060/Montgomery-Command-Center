@@ -108,7 +108,7 @@ export default function RegenerationPage() {
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
-            <p className="text-[10px] text-slate-600 mt-1">Narrow results to a specific neighborhood</p>
+            <p className="text-xs text-slate-600 mt-1">Narrow results to a specific neighborhood</p>
           </div>
 
           <button type="submit" disabled={action.loading} className="btn-primary w-full flex items-center justify-center gap-2">
@@ -169,15 +169,15 @@ export default function RegenerationPage() {
                           <div className="min-w-0">
                             <h4 className="text-sm font-semibold text-slate-200 truncate">{p.address || p.parcelNum}</h4>
                             <div className="flex items-center gap-3 mt-0.5">
-                              <span className="text-[10px] text-slate-500">Parcel {p.parcelNum}</span>
-                              <span className="text-[10px] text-slate-500">{p.acreage?.toFixed(2)} ac</span>
-                              <span className="text-[10px] text-slate-500">Zone: {p.zoning}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${badge.cls}`}>{badge.label}</span>
+                              <span className="text-xs text-slate-500">Parcel {p.parcelNum}</span>
+                              <span className="text-xs text-slate-500">{p.acreage?.toFixed(2)} ac</span>
+                              <span className="text-xs text-slate-500">Zone: {p.zoning}</span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded border ${badge.cls}`}>{badge.label}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-[10px] text-slate-500">{Array.isArray(p.recommendations) ? p.recommendations.length : 0} options</span>
+                          <span className="text-xs text-slate-500">{Array.isArray(p.recommendations) ? p.recommendations.length : 0} options</span>
                           {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                         </div>
                       </button>
@@ -188,7 +188,7 @@ export default function RegenerationPage() {
                           {/* Market Momentum */}
                           {p.marketMomentumImpact && (
                             <div className="mt-4 p-3 bg-slate-800/40 rounded-lg border-l-3 border-l-blight-500">
-                              <h5 className="text-[10px] font-semibold text-blight-400 uppercase tracking-wider mb-1">Market Momentum Impact</h5>
+                              <h5 className="text-xs font-semibold text-blight-400 uppercase tracking-wider mb-1">Market Momentum Impact</h5>
                               <Markdown size="sm">{p.marketMomentumImpact}</Markdown>
                             </div>
                           )}
@@ -227,7 +227,7 @@ export default function RegenerationPage() {
                                       </div>
                                     )}
                                     {rec.justification && (
-                                      <p className="text-xs text-slate-400 mt-2 leading-relaxed">{rec.justification}</p>
+                                      <p className="text-sm text-slate-400 mt-2 leading-relaxed">{rec.justification}</p>
                                     )}
                                   </div>
                                 ))}
@@ -238,8 +238,8 @@ export default function RegenerationPage() {
                           {/* Catalytic Potential */}
                           {p.catalyticPotential && (
                             <div className="p-3 bg-slate-800/40 rounded-lg">
-                              <h5 className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider mb-1">Catalytic Potential</h5>
-                              <p className="text-xs text-slate-400 leading-relaxed">{p.catalyticPotential}</p>
+                              <h5 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1">Catalytic Potential</h5>
+                              <p className="text-sm text-slate-400 leading-relaxed">{p.catalyticPotential}</p>
                             </div>
                           )}
 
@@ -249,19 +249,19 @@ export default function RegenerationPage() {
                               {p.nearbyContext.schoolsInCity != null && (
                                 <div className="p-2 bg-slate-800/30 rounded-lg text-center">
                                   <div className="text-lg font-bold text-blue-400">{p.nearbyContext.schoolsInCity}</div>
-                                  <div className="text-[10px] text-slate-500">Schools in City</div>
+                                  <div className="text-xs text-slate-500">Schools in City</div>
                                 </div>
                               )}
                               {p.nearbyContext.communityCentersInCity != null && (
                                 <div className="p-2 bg-slate-800/30 rounded-lg text-center">
                                   <div className="text-lg font-bold text-purple-400">{p.nearbyContext.communityCentersInCity}</div>
-                                  <div className="text-[10px] text-slate-500">Community Centers</div>
+                                  <div className="text-xs text-slate-500">Community Centers</div>
                                 </div>
                               )}
                               {Array.isArray(p.nearbyContext.cityWideTopBlightAreas) && (
                                 <div className="p-2 bg-slate-800/30 rounded-lg text-center">
                                   <div className="text-lg font-bold text-red-400">{p.nearbyContext.cityWideTopBlightAreas.length}</div>
-                                  <div className="text-[10px] text-slate-500">Top Blight Areas</div>
+                                  <div className="text-xs text-slate-500">Top Blight Areas</div>
                                 </div>
                               )}
                             </div>

@@ -206,9 +206,9 @@ function ValueCell({ label, value }: { label: string; value: any }) {
   // Array of primitives → pill tags inline
   if (Array.isArray(value) && value.every(i => typeof i !== 'object')) {
     return (
-      <span className="inline-flex flex-wrap gap-1">
+      <span className="inline-flex flex-wrap gap-1.5">
         {value.map((item, i) => (
-          <span key={i} className="px-2 py-0.5 bg-slate-700/40 rounded text-slate-300 text-[11px]">{String(item)}</span>
+          <span key={i} className="px-2.5 py-1 bg-slate-700/40 rounded text-slate-300 text-xs">{String(item)}</span>
         ))}
       </span>
     );
@@ -217,20 +217,20 @@ function ValueCell({ label, value }: { label: string; value: any }) {
   // Array of objects → mini rows
   if (Array.isArray(value)) {
     return (
-      <div className="space-y-2 mt-1">
+      <div className="space-y-2.5 mt-1">
         {value.map((item, i) => (
           <div key={i} className="pl-3 border-l-2 border-slate-600/30">
             {typeof item === 'object' && item !== null ? (
-              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
                 {Object.entries(item).filter(([, v]) => v != null && v !== '').map(([k, v]) => (
                   <React.Fragment key={k}>
-                    <span className="text-[11px] text-slate-500 font-medium">{labelify(k)}</span>
-                    <span className="text-[11px] text-slate-300">{typeof v === 'object' ? <ValueCell label={k} value={v} /> : formatValue(k, v) || String(v)}</span>
+                    <span className="text-xs text-slate-400 font-medium">{labelify(k)}</span>
+                    <span className="text-sm text-slate-200">{typeof v === 'object' ? <ValueCell label={k} value={v} /> : formatValue(k, v) || String(v)}</span>
                   </React.Fragment>
                 ))}
               </div>
             ) : (
-              <span className="text-[11px] text-slate-300">{String(item)}</span>
+              <span className="text-sm text-slate-200">{String(item)}</span>
             )}
           </div>
         ))}
@@ -241,11 +241,11 @@ function ValueCell({ label, value }: { label: string; value: any }) {
   // Object → inline key-value pairs
   const entries = Object.entries(value).filter(([, v]) => v != null && v !== '');
   return (
-    <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
       {entries.map(([k, v]) => (
         <React.Fragment key={k}>
-          <span className="text-[11px] text-slate-500 font-medium">{labelify(k)}</span>
-          <span className="text-[11px] text-slate-300">{typeof v === 'object' ? <ValueCell label={k} value={v} /> : formatValue(k, v) || String(v)}</span>
+          <span className="text-xs text-slate-400 font-medium">{labelify(k)}</span>
+          <span className="text-sm text-slate-200">{typeof v === 'object' ? <ValueCell label={k} value={v} /> : formatValue(k, v) || String(v)}</span>
         </React.Fragment>
       ))}
     </div>
@@ -264,22 +264,22 @@ function SectionBlock({ section, defaultOpen }: { section: Section; defaultOpen:
     <div className="border border-slate-700/30 rounded-lg overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-slate-800/30 transition-colors text-left"
+        className="w-full px-5 py-3 flex items-center justify-between hover:bg-slate-800/30 transition-colors text-left"
       >
-        <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">{section.title}</h4>
+        <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">{section.title}</h4>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-500">{section.entries.length} fields</span>
-          {open ? <ChevronUp className="w-3.5 h-3.5 text-slate-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500" />}
+          <span className="text-xs text-slate-500">{section.entries.length} fields</span>
+          {open ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
         </div>
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-2 space-y-3 border-t border-slate-700/20">
+        <div className="px-5 pb-5 pt-3 space-y-4 border-t border-slate-700/20">
           {/* Primitive key-value pairs as a compact grid */}
           {primitiveEntries.length > 0 && (
-            <div className={`grid gap-x-6 gap-y-1.5 ${primitiveEntries.length > 4 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-x-6 gap-y-2 ${primitiveEntries.length > 4 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               {primitiveEntries.map((e, i) => (
-                <div key={i} className="flex items-baseline gap-2 text-xs py-0.5">
-                  <span className="text-slate-500 font-medium whitespace-nowrap">{e.label}:</span>
+                <div key={i} className="flex items-baseline gap-2 text-sm py-0.5">
+                  <span className="text-slate-400 font-medium whitespace-nowrap">{e.label}:</span>
                   <RenderValue label={e.label} value={e.value} />
                 </div>
               ))}
@@ -288,9 +288,9 @@ function SectionBlock({ section, defaultOpen }: { section: Section; defaultOpen:
 
           {/* Complex values as labeled blocks */}
           {complexEntries.map((e, i) => (
-            <div key={i} className="space-y-1">
-              <h5 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">{e.label}</h5>
-              <div className="bg-slate-800/20 rounded-lg p-3">
+            <div key={i} className="space-y-1.5">
+              <h5 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{e.label}</h5>
+              <div className="bg-slate-800/20 rounded-lg p-4">
                 <ValueCell label={e.label} value={e.value} />
               </div>
             </div>
@@ -361,10 +361,10 @@ export function RenderFields({ data, excludeKeys }: { data: any; excludeKeys?: S
   );
   if (entries.length === 0) return null;
   return (
-    <div className="space-y-1 mt-2">
+    <div className="space-y-1.5 mt-2">
       {entries.map(([k, v]) => (
-        <div key={k} className="text-xs flex gap-1.5">
-          <span className="text-slate-500 font-medium">{labelify(k)}:</span>
+        <div key={k} className="text-sm flex gap-2">
+          <span className="text-slate-400 font-medium">{labelify(k)}:</span>
           <RenderValue label={k} value={v} />
         </div>
       ))}

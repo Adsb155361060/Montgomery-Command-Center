@@ -147,7 +147,7 @@ export default function DeploymentPage() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-semibold text-white">{officerId ? `Officer ${officerId}` : `Unit ${i + 1}`}</span>
                         {priority && (
-                          <span className={`badge text-[10px] ${
+                          <span className={`badge text-xs ${
                             priorityStr === 'high' || priorityStr === 'critical' ? 'badge-danger' :
                             priorityStr === 'medium' || priorityStr === 'moderate' ? 'badge-warning' :
                             'badge-success'
@@ -156,22 +156,22 @@ export default function DeploymentPage() {
                           </span>
                         )}
                       </div>
-                      {zone && <p className="text-xs text-slate-400">Zone: {zone}</p>}
-                      {district && <p className="text-xs text-slate-400">District: {district}</p>}
-                      {route && <p className="text-xs text-slate-400 mt-1">{route}</p>}
+                      {zone && <p className="text-sm text-slate-400">Zone: {zone}</p>}
+                      {district && <p className="text-sm text-slate-400">District: {district}</p>}
+                      {route && <p className="text-sm text-slate-400 mt-1">{route}</p>}
                       {coverage > 0 && (
                         <>
                           <div className="mt-2 w-full bg-slate-700 rounded-full h-1.5">
                             <div className="bg-sentinel-500 h-1.5 rounded-full" style={{ width: `${Math.min(coverage, 100)}%` }} />
                           </div>
-                          <p className="text-[10px] text-slate-500 mt-1">{coverage}% coverage</p>
+                          <p className="text-xs text-slate-500 mt-1">{coverage}% coverage</p>
                         </>
                       )}
                       {/* Show any extra fields */}
                       {extra.length > 0 && (
                         <div className="mt-2 space-y-0.5">
                           {extra.map(([k, v]) => (
-                            <div key={k} className="text-[10px] text-slate-500">
+                            <div key={k} className="text-sm text-slate-500">
                               <span className="font-medium">{labelify(k)}:</span>{' '}
                               <span className="text-slate-400">{typeof v === 'object' ? <SmartValue label={k} value={v} /> : String(v)}</span>
                             </div>

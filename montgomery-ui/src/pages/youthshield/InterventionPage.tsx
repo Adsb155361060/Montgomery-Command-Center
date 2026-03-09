@@ -123,7 +123,7 @@ export default function InterventionPage() {
                 <option key={n.value} value={n.value}>{n.label}</option>
               ))}
             </select>
-            <p className="text-[10px] text-slate-600 mt-1">Select a district or analyze all high-risk zones</p>
+            <p className="text-xs text-slate-600 mt-1">Select a district or analyze all high-risk zones</p>
           </div>
 
           <div>
@@ -137,7 +137,7 @@ export default function InterventionPage() {
                     <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${form.interventionType === t.value ? 'text-youthshield-400' : 'text-slate-500'}`} />
                     <div>
                       <p className={`text-sm font-medium ${form.interventionType === t.value ? 'text-youthshield-300' : 'text-slate-300'}`}>{t.label}</p>
-                      <p className="text-[10px] text-slate-500">{t.desc}</p>
+                      <p className="text-sm text-slate-500">{t.desc}</p>
                     </div>
                   </label>
                 );
@@ -186,13 +186,13 @@ export default function InterventionPage() {
                           <div className="flex-1 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
                             <p className="text-sm text-slate-300">{stepText}</p>
                             <div className="flex flex-wrap gap-3 mt-1.5">
-                              {stepTimeline && <span className="text-[10px] text-slate-500">⏱ {stepTimeline}</span>}
-                              {stepCost && <span className="text-[10px] text-amber-400">💰 {typeof stepCost === 'number' ? formatCurrency(stepCost) : stepCost}</span>}
+                              {stepTimeline && <span className="text-xs text-slate-500">⏱ {stepTimeline}</span>}
+                              {stepCost && <span className="text-xs text-amber-400">💰 {typeof stepCost === 'number' ? formatCurrency(stepCost) : stepCost}</span>}
                             </div>
                             {extraFields.length > 0 && (
                               <div className="mt-2 space-y-0.5">
                                 {extraFields.map(([k, v]) => (
-                                  <div key={k} className="text-[10px] text-slate-500">
+                                  <div key={k} className="text-sm text-slate-500">
                                     <span className="font-medium">{labelify(k)}:</span> <span className="text-slate-400">{typeof v === 'object' ? <SmartValue label={k} value={v} /> : String(v)}</span>
                                   </div>
                                 ))}
@@ -215,7 +215,7 @@ export default function InterventionPage() {
                       if (typeof item === 'string') {
                         return (
                           <div key={i} className="flex gap-3 items-start">
-                            <span className="w-6 h-6 rounded-full bg-youthshield-500/20 flex items-center justify-center text-[10px] font-bold text-youthshield-400 flex-shrink-0">{i + 1}</span>
+                            <span className="w-6 h-6 rounded-full bg-youthshield-500/20 flex items-center justify-center text-xs font-bold text-youthshield-400 flex-shrink-0">{i + 1}</span>
                             <Markdown size="sm">{item}</Markdown>
                           </div>
                         );
@@ -231,12 +231,12 @@ export default function InterventionPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <h4 className="text-sm font-semibold text-slate-200">{title}</h4>
-                              {desc && <p className="text-xs text-slate-400 mt-1 leading-relaxed">{desc}</p>}
-                              {target && <p className="text-[10px] text-youthshield-400 mt-1">Target: {target}</p>}
+                              {desc && <p className="text-sm text-slate-400 mt-1 leading-relaxed">{desc}</p>}
+                              {target && <p className="text-sm text-youthshield-400 mt-1">Target: {target}</p>}
                               {extra.length > 0 && (
                                 <div className="mt-2 space-y-0.5">
                                   {extra.map(([k, v]) => (
-                                    <div key={k} className="text-xs">
+                                    <div key={k} className="text-sm">
                                       <span className="text-slate-500 font-medium">{labelify(k)}: </span>
                                       <span className="text-slate-300">{typeof v === 'object' ? <SmartValue label={k} value={v} /> : String(v)}</span>
                                     </div>
@@ -281,7 +281,7 @@ export default function InterventionPage() {
                     {coverageGaps.map((g: any, i: number) => (
                       <div key={i} className="flex items-start gap-2">
                         <span className="text-amber-500 mt-0.5">⚠</span>
-                        <p className="text-xs text-slate-300">{typeof g === 'string' ? g : (pick(g, 'text', 'description', 'area', 'gap', 'name') || smartText(g))}</p>
+                        <p className="text-sm text-slate-300">{typeof g === 'string' ? g : (pick(g, 'text', 'description', 'area', 'gap', 'name') || smartText(g))}</p>
                       </div>
                     ))}
                   </div>

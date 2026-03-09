@@ -92,15 +92,15 @@ export default function ForceMultiplierPage() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <p className="text-lg font-bold font-mono text-sentinel-400">{zone.multiplierEffect?.toFixed(1)}x</p>
-                <p className="text-[10px] text-slate-500">Multiplier</p>
+                <p className="text-xs text-slate-500">Multiplier</p>
               </div>
               <div>
                 <p className="text-lg font-bold font-mono text-white">{zone.incidentCount}</p>
-                <p className="text-[10px] text-slate-500">Incidents</p>
+                <p className="text-xs text-slate-500">Incidents</p>
               </div>
               <div>
                 <p className="text-lg font-bold font-mono text-amber-400">{zone.shift || '—'}</p>
-                <p className="text-[10px] text-slate-500">Shift</p>
+                <p className="text-xs text-slate-500">Shift</p>
               </div>
             </div>
             {zone.recommendation && (
