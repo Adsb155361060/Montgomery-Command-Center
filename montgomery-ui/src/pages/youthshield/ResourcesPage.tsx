@@ -46,9 +46,6 @@ export default function ResourcesPage() {
   // Don't send type filter to API — flatten locally instead (API uses different type keys: "center" vs "community_center")
   const { data, loading, error, refetch } = useFetch(() => youthshield.resources({ page, limit: 200 }), [page]);
 
-  if (loading) return <LoadingScreen message="Loading youth resources..." />;
-  if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
-
   const allResources = useMemo(() => flattenResources(data), [data]);
 
   const resources = useMemo(() => {
@@ -64,6 +61,9 @@ export default function ResourcesPage() {
   }, [allResources, type, filters.search]);
 
   const summary = (data as any)?.summary;
+
+  if (loading) return <LoadingScreen message="Loading youth resources..." />;
+  if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 
   const types = ['school', 'community_center', 'park', 'library', 'daycare'];
   const typeCounts: Record<string, number> = {};
