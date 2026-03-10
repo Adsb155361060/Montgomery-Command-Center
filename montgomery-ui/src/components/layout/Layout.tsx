@@ -32,7 +32,7 @@ export default function Layout() {
       <Sidebar />
       <div className="ml-64 transition-all duration-300">
         <Header />
-        <main className="p-6">
+        <main className="p-6 print-main">
           <Outlet />
         </main>
       </div>

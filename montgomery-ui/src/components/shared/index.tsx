@@ -29,7 +29,7 @@ export function FilterBar({
   const activeCount = Object.values(values).filter(Boolean).length;
 
   return (
-    <div className="glass-card p-3">
+    <div className="glass-card p-3 no-print">
       <div className="flex items-center justify-between gap-3">
         <button
           onClick={() => setExpanded(!expanded)}
@@ -312,7 +312,7 @@ export function Pagination({
   const showingTo = totalRecords ? Math.min(page * (pageSize || 25), totalRecords) : undefined;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 no-print">
       {totalRecords != null && (
         <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
           Showing {showingFrom}–{showingTo} of {totalRecords.toLocaleString()} records

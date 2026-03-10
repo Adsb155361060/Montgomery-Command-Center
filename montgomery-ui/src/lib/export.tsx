@@ -40,56 +40,136 @@ export function exportAsText(content: string, filename = 'export') {
 /** Export as PDF by printing */
 export function exportAsPDF(title: string) {
   const style = document.createElement('style');
+  style.id = 'mcc-print-style';
   style.textContent = `
     @media print {
-      /* Hide sidebar, header, floating buttons, export menu */
-      nav, header, aside,
+      /* ── 1. Hide EVERYTHING first ── */
+      body * {
+        visibility: hidden !important;
+      }
+
+      /* ── 2. Completely remove sidebar, header, floating elements, buttons ── */
+      nav,
+      header,
+      aside,
       .no-print,
       [class*="FloatingAi"],
+      [class*="Onboarding"],
       [class*="sidebar"],
-      button { visibility: hidden; height: 0; overflow: hidden; }
+      [class*="Sidebar"] {
+        display: none !important;
+      }
 
-      /* Show the main content area */
-      body, body * { visibility: visible; }
+      /* ── 3. Make main content visible ── */
+      main,
+      main * {
+        visibility: visible !important;
+      }
+
+      /* ── 4. Position main as full-page content ── */
       main {
-        position: absolute; left: 0; top: 0; width: 100%;
-        margin: 0; padding: 40px;
-        color: #1e293b; background: white;
-        font-family: 'Georgia', serif;
-      }
-      main * { color: #334155; }
-      main h1, main h2, main h3, main h4 { color: #0f172a; }
-      main code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
-      main a { color: #2563eb; }
-
-      /* Also support the explicit print-target class for BriefingPage */
-      .print-target, .print-target * { visibility: visible; }
-      .print-target {
-        position: absolute; left: 0; top: 0; width: 100%;
-        padding: 40px; color: #1e293b; background: white;
-        font-family: 'Georgia', serif;
-      }
-
-      /* Remove dark backgrounds and borders for print */
-      [class*="glass-card"],
-      [class*="bg-navy"],
-      [class*="bg-slate-8"],
-      [class*="bg-slate-9"] {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 32px 40px !important;
         background: white !important;
-        border-color: #e2e8f0 !important;
+        z-index: 99999 !important;
+        overflow: visible !important;
       }
 
-      /* Ensure tables and badges print legibly */
-      table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-size: 11px; }
-      th { background: #f1f5f9; font-weight: 600; }
-      .badge { border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+      /* Remove sidebar offset */
+      .ml-64, [class*="ml-64"] {
+        margin-left: 0 !important;
+      }
 
-      /* Remove the sidebar margin */
-      .ml-64, [class*="ml-64"] { margin-left: 0 !important; }
+      /* ── 5. Hide interactive elements inside main ── */
+      main button,
+      main select,
+      main input,
+      main [class*="FilterBar"],
+      main [class*="filter"],
+      main [class*="Pagination"],
+      main [class*="pagination"],
+      main [class*="ExportButton"],
+      main [class*="export"] {
+        display: none !important;
+      }
 
-      .no-print { display: none !important; }
-      @page { margin: 0.75in; }
+      /* ── 6. Print-friendly typography ── */
+      main { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+      main, main * { color: #1e293b !important; }
+      main h1, main h2, main h3, main h4 { color: #0f172a !important; font-weight: 700; }
+      main h1 { font-size: 22px; margin-bottom: 4px; }
+      main h2 { font-size: 18px; }
+      main h3 { font-size: 15px; }
+      main p, main span, main li, main td { font-size: 11px; line-height: 1.5; }
+      main code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+      main a { color: #2563eb !important; text-decoration: underline; }
+
+      /* ── 7. Clean up card backgrounds ── */
+      main [class*="glass-card"],
+      main [class*="bg-navy"],
+      main [class*="bg-slate-8"],
+      main [class*="bg-slate-9"],
+      main [class*="bg-slate-7"] {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+
+      /* ── 8. Tables ── */
+      main table { border-collapse: collapse; width: 100%; page-break-inside: auto; }
+      main thead { display: table-header-group; }
+      main tr { page-break-inside: avoid; }
+      main th, main td {
+        border: 1px solid #cbd5e1;
+        padding: 6px 8px;
+        text-align: left;
+        font-size: 10px;
+      }
+      main th { background: #f1f5f9 !important; font-weight: 600; color: #0f172a !important; }
+
+      /* ── 9. Badges ── */
+      main .badge, main [class*="badge"] {
+        border: 1px solid #94a3b8 !important;
+        background: #f8fafc !important;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 9px;
+      }
+
+      /* ── 10. Grid layouts → stack for print ── */
+      main .grid {
+        display: block !important;
+      }
+      main .grid > * {
+        margin-bottom: 8px;
+        page-break-inside: avoid;
+      }
+
+      /* ── 11. Also support explicit print-target (BriefingPage) ── */
+      .print-target, .print-target * { visibility: visible !important; }
+
+      /* ── 12. Title header ── */
+      main::before {
+        content: "${title}";
+        display: block;
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+      }
+
+      @page {
+        margin: 0.6in;
+        size: A4;
+      }
     }
   `;
   document.head.appendChild(style);
@@ -131,7 +211,7 @@ export function ExportButton({ content, filename = 'export', title = 'Export', s
     : 'px-4 py-2 text-sm';
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative no-print">
       <button
         onClick={() => setOpen(!open)}
         className={`${btnClass} flex items-center gap-1.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-400 hover:text-white hover:border-slate-600 transition-all`}
