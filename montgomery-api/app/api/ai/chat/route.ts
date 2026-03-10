@@ -59,13 +59,19 @@ export async function POST(request: Request) {
 
     const baseSystemPrompt = getSystemPrompt(module as ModuleType);
 
+    // Detect conversational messages (greetings, thanks, chitchat)
+    const trimmed = message.trim();
+    const isConversational = /^(hi|hello|hey|howdy|good\s*(morning|afternoon|evening)|thanks|thank\s*you|bye|goodbye|sup|yo|what'?s\s*up|how\s*are\s*you|how'?s\s*it\s*going|nice|cool|ok|okay|great|awesome|got\s*it)\b/i.test(trimmed) && trimmed.split(/\s+/).length <= 10;
+
     // Determine response style based on question complexity
-    const wordCount = message.trim().split(/\s+/).length;
-    const isComplex = wordCount > 30 || message.includes("analyze") || message.includes("strategy") || message.includes("compare") || message.includes("explain in detail") || message.includes("report") || message.includes("briefing");
-    const isSimple = (wordCount <= 8 && !message.includes("?")) || (wordCount <= 12 && !!message.match(/^(what is|how many|show|list|status|count|total|give me|tell me)\b/i));
+    const wordCount = trimmed.split(/\s+/).length;
+    const isComplex = !isConversational && (wordCount > 30 || message.includes("analyze") || message.includes("strategy") || message.includes("compare") || message.includes("explain in detail") || message.includes("report") || message.includes("briefing"));
+    const isSimple = !isConversational && ((wordCount <= 8 && !message.includes("?")) || (wordCount <= 12 && !!message.match(/^(what is|how many|show|list|status|count|total|give me|tell me)\b/i)));
 
     let responseStyle: string;
-    if (isSimple) {
+    if (isConversational) {
+      responseStyle = `\n\nRESPONSE RULES: The user sent a casual/conversational message (like a greeting or thanks). Respond naturally and warmly in 1-2 short sentences, like a friendly assistant. Do NOT produce any reports, analysis, data, bullet points, or recommendations. Just be friendly. If they said hello, greet them back and let them know you can help with questions about Montgomery.`;
+    } else if (isSimple) {
       responseStyle = `\n\nRESPONSE RULES: The user asked a short/simple question. Reply in 1-3 concise sentences. No bullet points, no headers, no lengthy explanations. Be direct and to the point. If a number answers the question, lead with the number.`;
     } else if (isComplex) {
       responseStyle = `\n\nRESPONSE RULES: The user asked a complex/analytical question. Provide a structured, detailed response with headers and bullet points where appropriate. Keep it thorough but focused — no filler.`;
@@ -74,7 +80,10 @@ export async function POST(request: Request) {
     }
 
     const systemPrompt = baseSystemPrompt + responseStyle;
-    const fullPrompt = `${message}\n\n${context ? `User context: ${context}\n` : ""}Live data: ${dataContext}`;
+    // Don't inject data context for conversational messages — it causes the AI to generate reports
+    const fullPrompt = isConversational
+      ? message
+      : `${message}\n\n${context ? `User context: ${context}\n` : ""}Live data: ${dataContext}`;
 
     const { text, model: usedModel } = isComplex
       ? await AI.strategize(fullPrompt, systemPrompt)

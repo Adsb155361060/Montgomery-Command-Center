@@ -48,7 +48,7 @@ export function verifyToken(token: string): JwtPayload | null {
 
 const MODULE_ACCESS: Record<Role, string[]> = {
   EXECUTIVE: ["sentinel", "youthshield", "blight", "compass", "command", "ai", "geo"],
-  OPERATIONAL: ["sentinel", "youthshield", "blight", "compass", "ai", "geo"],
+  OPERATIONAL: ["sentinel", "youthshield", "blight", "compass", "command", "ai", "geo"],
   CITIZEN: ["geo", "ai"], // Public transparency portal — read-only + AI chat
 };
 

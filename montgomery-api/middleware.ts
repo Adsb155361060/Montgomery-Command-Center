@@ -27,7 +27,7 @@ const CITIZEN_GET_PATHS = [
 // Module access matrix by role
 const ROLE_MODULES: Record<string, string[]> = {
   EXECUTIVE: ["sentinel", "youthshield", "blight", "compass", "command", "ai", "geo", "auth"],
-  OPERATIONAL: ["sentinel", "youthshield", "blight", "compass", "ai", "geo", "auth"],
+  OPERATIONAL: ["sentinel", "youthshield", "blight", "compass", "command", "ai", "geo", "auth"],
   CITIZEN: ["auth", "geo", "ai"],
 };
 
