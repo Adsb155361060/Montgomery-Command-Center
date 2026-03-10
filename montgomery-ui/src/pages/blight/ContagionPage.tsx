@@ -97,40 +97,40 @@ export default function ContagionPage() {
   const d = action.data as any;
 
   /* ── Extract arrays (try top-level and nested .data) ── */
-  const rawZones: any[] = d?.contagionZones || d?.data?.contagionZones || d?.zones || d?.data?.zones || [];
-  const rawHotspots: any[] = d?.hotspots || d?.data?.hotspots || [];
-  const rawSpillovers: any[] = d?.positiveSpillover || d?.data?.positiveSpillover || d?.positiveSpillovers || d?.data?.positiveSpillovers || d?.spillover || [];
+  const rawZones: any[] = d?.contagionZones || d?.contagion_zones || d?.data?.contagionZones || d?.data?.contagion_zones || d?.zones || d?.data?.zones || [];
+  const rawHotspots: any[] = d?.hotspots || d?.data?.hotspots || d?.hot_spots || d?.data?.hot_spots || [];
+  const rawSpillovers: any[] = d?.positiveSpillover || d?.positive_spillover || d?.data?.positiveSpillover || d?.data?.positive_spillover || d?.positiveSpillovers || d?.positive_spillovers || d?.data?.positiveSpillovers || d?.spillover || [];
   const recs: any[] = (() => {
-    const raw = d?.recommendations || d?.data?.recommendations || [];
+    const raw = d?.recommendations || d?.data?.recommendations || d?.containment_recommendations || d?.containmentRecommendations || [];
     return Array.isArray(raw) ? raw : [raw];
   })();
 
   /* ── Normalize zone objects with resilient field extraction ── */
   const zones = rawZones.map((z: any) => ({
-    label: pick(z, 'address', 'parcel', 'zone', 'zoneName', 'name', 'location', 'area', 'neighborhood', 'id', 'parcelNum', 'parcelId') || '',
-    subLabel: pick(z, 'parcel', 'parcelNum', 'parcelId', 'id'),
-    score: Number(pick(z, 'contagionScore', 'score', 'contagion', 'riskScore', 'blightScore', 'severity')) || 0,
-    affected: Number(pick(z, 'affectedNeighbors', 'affected', 'neighbors', 'neighborsAffected', 'affectedParcels', 'impactedNeighbors', 'impacted')) || 0,
-    spreadRisk: String(pick(z, 'spreadRisk', 'risk', 'riskLevel', 'spreadLevel', 'contagionRisk', 'threat') || ''),
-    remediation: String(pick(z, 'remediationImpact', 'remediation', 'impact', 'remediationEffect', 'intervention', 'recommendation', 'effect') || ''),
-    priority: Number(pick(z, 'priority', 'priorityRank', 'rank', 'order')) || 0,
+    label: pick(z, 'address', 'parcel', 'zone', 'zoneName', 'zone_name', 'name', 'location', 'area', 'neighborhood', 'id', 'parcelNum', 'parcel_num', 'parcelId', 'parcel_id') || '',
+    subLabel: pick(z, 'parcel', 'parcelNum', 'parcel_num', 'parcelId', 'parcel_id', 'id'),
+    score: Number(pick(z, 'contagionScore', 'contagion_score', 'score', 'contagion', 'riskScore', 'risk_score', 'blightScore', 'blight_score', 'severity')) || 0,
+    affected: Number(pick(z, 'affectedNeighbors', 'affected_neighbors', 'affected', 'neighbors', 'neighborsAffected', 'neighbors_affected', 'affectedParcels', 'affected_parcels', 'impactedNeighbors', 'impacted_neighbors', 'impacted')) || 0,
+    spreadRisk: String(pick(z, 'spreadRisk', 'spread_risk', 'risk', 'riskLevel', 'risk_level', 'spreadLevel', 'spread_level', 'contagionRisk', 'contagion_risk', 'threat') || ''),
+    remediation: String(pick(z, 'remediationImpact', 'remediation_impact', 'remediation', 'impact', 'remediationEffect', 'remediation_effect', 'intervention', 'recommendation', 'effect') || ''),
+    priority: Number(pick(z, 'priority', 'priorityRank', 'priority_rank', 'rank', 'order')) || 0,
     raw: z,
   }));
 
   /* ── Normalize hotspot objects ── */
   const hotspots = rawHotspots.map((h: any) => ({
-    area: pick(h, 'area', 'name', 'location', 'zone', 'neighborhood', 'address', 'zoneName') || '',
-    density: pick(h, 'blightDensity', 'density', 'score', 'blightScore', 'severity', 'count'),
-    spread: pick(h, 'spreadDirection', 'spread', 'direction', 'trend', 'spreadTrend'),
-    urgency: String(pick(h, 'interventionUrgency', 'urgency', 'priority', 'riskLevel', 'risk', 'level') || ''),
+    area: pick(h, 'area', 'name', 'location', 'zone', 'neighborhood', 'address', 'zoneName', 'zone_name') || '',
+    density: pick(h, 'blightDensity', 'blight_density', 'density', 'score', 'blightScore', 'blight_score', 'severity', 'count'),
+    spread: pick(h, 'spreadDirection', 'spread_direction', 'spread', 'direction', 'trend', 'spreadTrend', 'spread_trend'),
+    urgency: String(pick(h, 'interventionUrgency', 'intervention_urgency', 'urgency', 'priority', 'riskLevel', 'risk_level', 'risk', 'level') || ''),
     raw: h,
   }));
 
   /* ── Normalize spillover objects ── */
   const spillovers = rawSpillovers.map((s: any) => ({
     area: pick(s, 'area', 'name', 'location', 'zone', 'neighborhood') || '',
-    parcels: pick(s, 'remediatedParcels', 'parcels', 'count', 'properties'),
-    improvement: String(pick(s, 'neighborhoodImprovement', 'improvement', 'impact', 'description', 'effect', 'result') || ''),
+    parcels: pick(s, 'remediatedParcels', 'remediated_parcels', 'parcels', 'count', 'properties'),
+    improvement: String(pick(s, 'neighborhoodImprovement', 'neighborhood_improvement', 'improvement', 'impact', 'description', 'effect', 'result') || ''),
     raw: s,
   }));
 
@@ -200,6 +200,36 @@ export default function ContagionPage() {
                 <StatCard label="Max Contagion" value={`${maxContagion}/10`} icon={<TrendingUp className="w-4 h-4" />} color="text-blight-400" />
                 <StatCard label="Neighbors At Risk" value={totalAffected} icon={<AlertTriangle className="w-4 h-4" />} color="text-youthshield-400" />
               </div>
+
+              {/* Key Findings */}
+              {(zones.length > 0 || hotspots.length > 0) && (
+                <div className="glass-card p-5 border-l-4 border-l-red-500 bg-red-500/5">
+                  <h3 className="text-sm font-semibold text-red-300 mb-3">Contagion Summary</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {zones.length > 0 && zones[0].label && (
+                      <div className="p-3 bg-slate-800/30 rounded-lg">
+                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Highest Risk Zone</div>
+                        <div className="text-sm font-bold text-red-400">{zones.sort((a, b) => b.score - a.score)[0].label}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">Score: {zones.sort((a, b) => b.score - a.score)[0].score}/10</div>
+                      </div>
+                    )}
+                    {hotspots.length > 0 && (
+                      <div className="p-3 bg-slate-800/30 rounded-lg">
+                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Most Urgent Hotspot</div>
+                        <div className="text-sm font-bold text-amber-400">{hotspots[0].area || 'Hotspot 1'}</div>
+                        {hotspots[0].urgency && <div className="text-xs text-amber-500 mt-0.5">{hotspots[0].urgency}</div>}
+                      </div>
+                    )}
+                    {spillovers.length > 0 && (
+                      <div className="p-3 bg-slate-800/30 rounded-lg">
+                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Positive Spillover</div>
+                        <div className="text-sm font-bold text-emerald-400">{spillovers.length} area{spillovers.length > 1 ? 's' : ''}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">showing improvement</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Contagion Score Chart */}
               {chartData.length > 0 && (

@@ -40,44 +40,44 @@ export default function CBAPage() {
 
   const raw = action.data as any;
   // The API can return the CBA at various nesting levels
-  const d = raw?.communityBenefitAgreement || raw?.cba || raw?.data?.communityBenefitAgreement || raw?.data?.cba || raw?.data || raw;
+  const d = raw?.communityBenefitAgreement || raw?.community_benefit_agreement || raw?.cba || raw?.data?.communityBenefitAgreement || raw?.data?.community_benefit_agreement || raw?.data?.cba || raw?.data || raw;
   const hasData = d && typeof d === 'object' && Object.keys(d).length > 0;
 
   /* ─── Extract known sections with MANY fallback field names ─── */
 
   // Components / mitigations — the AI may call them components, mitigations, environmentalMitigations, cbaComponents, etc.
-  const directContrib = d?.cbaDirectContribution || d?.directContribution || {};
+  const directContrib = d?.cbaDirectContribution || d?.cba_direct_contribution || d?.directContribution || d?.direct_contribution || {};
   const components: any[] =
     d?.components || directContrib?.components ||
-    d?.cbaComponents || d?.environmentalMitigations || d?.mitigations ||
+    d?.cbaComponents || d?.cba_components || d?.environmentalMitigations || d?.environmental_mitigations || d?.mitigations ||
     d?.requirements || d?.obligations || d?.commitments || [];
 
   const totalCBAValue =
-    directContrib?.totalValue ||
-    parseDollar(pick(d, 'recommendedCBAValue', 'requiredCBAValue', 'totalCBAValue', 'cbaValue', 'totalValue') || '0') ||
-    components.reduce((s: number, c: any) => s + parseDollar(c.value || c.estimatedValue || c.amount || c.totalContributionUSD || c.totalContribution || c.contributionUSD || c.contribution || c.cost || '0'), 0);
+    directContrib?.totalValue || directContrib?.total_value ||
+    parseDollar(pick(d, 'recommendedCBAValue', 'recommended_cba_value', 'requiredCBAValue', 'required_cba_value', 'totalCBAValue', 'total_cba_value', 'cbaValue', 'cba_value', 'totalValue', 'total_value', 'totalCommunityInvestment', 'total_community_investment') || '0') ||
+    components.reduce((s: number, c: any) => s + parseDollar(c.value || c.estimatedValue || c.estimated_value || c.amount || c.totalContributionUSD || c.total_contribution_usd || c.totalContribution || c.total_contribution || c.contributionUSD || c.contribution_usd || c.contribution || c.cost || c.totalValue || c.total_value || '0'), 0);
 
   // Workforce
-  const workforce = d?.workforceDevelopment || d?.localHiringTargets || d?.workforce || d?.hiring || {};
+  const workforce = d?.workforceDevelopment || d?.workforce_development || d?.localHiringTargets || d?.local_hiring_targets || d?.workforce || d?.hiring || {};
   const trainingPartners: any[] =
-    workforce?.primaryPartners || workforce?.trainingPartners || workforce?.partners ||
-    d?.partners || d?.trainingPartners || d?.localHiringTargets?.trainingPartners ||
-    d?.stakeholders || d?.communityPartners || [];
-  const trainingPrograms: any[] = workforce?.trainingPrograms || workforce?.programs || d?.trainingPrograms || d?.programs || [];
+    workforce?.primaryPartners || workforce?.primary_partners || workforce?.trainingPartners || workforce?.training_partners || workforce?.partners ||
+    d?.partners || d?.trainingPartners || d?.training_partners || d?.localHiringTargets?.trainingPartners || d?.local_hiring_targets?.training_partners ||
+    d?.stakeholders || d?.communityPartners || d?.community_partners || [];
+  const trainingPrograms: any[] = workforce?.trainingPrograms || workforce?.training_programs || workforce?.programs || d?.trainingPrograms || d?.training_programs || d?.programs || [];
 
   // Negotiation points
   const negotiationPoints: any[] =
-    d?.negotiationPoints || d?.keyNegotiationPoints || d?.negotiation || d?.terms || [];
+    d?.negotiationPoints || d?.negotiation_points || d?.keyNegotiationPoints || d?.key_negotiation_points || d?.negotiation || d?.terms || [];
 
   // Tax abatement — the AI returns various structures
-  const taxAbatement = d?.taxAbatementAnalysis || d?.taxAbatementScenarios || d?.taxAbatement || d?.abatement || {};
+  const taxAbatement = d?.taxAbatementAnalysis || d?.tax_abatement_analysis || d?.taxAbatementScenarios || d?.tax_abatement_scenarios || d?.taxAbatement || d?.tax_abatement || d?.abatement || {};
 
   // Comparable CBAs
-  const comparables: any[] = d?.comparableCBAs || d?.comparableAgreements || d?.comparables || d?.benchmarks || [];
+  const comparables: any[] = d?.comparableCBAs || d?.comparable_cbas || d?.comparableAgreements || d?.comparable_agreements || d?.comparables || d?.benchmarks || [];
 
   // Summary / narrative
-  const summary = pick(d, 'summary', 'narrative', 'executiveSummary', 'overview', 'description', 'analysis');
-  const projectName = pick(d, 'projectName', 'project', 'name', 'title') || form.projectName;
+  const summary = pick(d, 'summary', 'narrative', 'executiveSummary', 'executive_summary', 'overview', 'description', 'analysis');
+  const projectName = pick(d, 'projectName', 'project_name', 'project', 'name', 'title') || form.projectName;
 
   // Chart data for components
   const componentChart = components.map((c: any) => ({
@@ -87,20 +87,20 @@ export default function CBAPage() {
 
   // Collect keys we handle explicitly, so AdaptiveRenderer shows everything else
   const handledKeys = new Set([
-    'communityBenefitAgreement', 'cba', 'data',
-    'components', 'cbaComponents', 'environmentalMitigations', 'mitigations', 'requirements', 'obligations', 'commitments',
-    'cbaDirectContribution', 'directContribution',
-    'recommendedCBAValue', 'requiredCBAValue', 'totalCBAValue', 'cbaValue', 'totalValue',
-    'workforceDevelopment', 'localHiringTargets', 'workforce', 'hiring',
-    'partners', 'trainingPartners', 'stakeholders', 'communityPartners',
-    'trainingPrograms', 'programs',
-    'negotiationPoints', 'keyNegotiationPoints', 'negotiation', 'terms',
-    'taxAbatementAnalysis', 'taxAbatementScenarios', 'taxAbatement', 'abatement',
-    'comparableCBAs', 'comparableAgreements', 'comparables', 'benchmarks',
-    'summary', 'narrative', 'executiveSummary', 'overview', 'description', 'analysis',
-    'projectName', 'project', 'name', 'title',
-    'projectInvestment', 'investmentAmount',
-    'negotiationDate', 'cbaFrameworkVersion',
+    'communityBenefitAgreement', 'community_benefit_agreement', 'cba', 'data',
+    'components', 'cbaComponents', 'cba_components', 'environmentalMitigations', 'environmental_mitigations', 'mitigations', 'requirements', 'obligations', 'commitments',
+    'cbaDirectContribution', 'cba_direct_contribution', 'directContribution', 'direct_contribution',
+    'recommendedCBAValue', 'recommended_cba_value', 'requiredCBAValue', 'required_cba_value', 'totalCBAValue', 'total_cba_value', 'cbaValue', 'cba_value', 'totalValue', 'total_value', 'totalCommunityInvestment', 'total_community_investment',
+    'workforceDevelopment', 'workforce_development', 'localHiringTargets', 'local_hiring_targets', 'workforce', 'hiring',
+    'partners', 'trainingPartners', 'training_partners', 'primaryPartners', 'primary_partners', 'stakeholders', 'communityPartners', 'community_partners',
+    'trainingPrograms', 'training_programs', 'programs',
+    'negotiationPoints', 'negotiation_points', 'keyNegotiationPoints', 'key_negotiation_points', 'negotiation', 'terms',
+    'taxAbatementAnalysis', 'tax_abatement_analysis', 'taxAbatementScenarios', 'tax_abatement_scenarios', 'taxAbatement', 'tax_abatement', 'abatement',
+    'comparableCBAs', 'comparable_cbas', 'comparableAgreements', 'comparable_agreements', 'comparables', 'benchmarks',
+    'summary', 'narrative', 'executiveSummary', 'executive_summary', 'overview', 'description', 'analysis',
+    'projectName', 'project_name', 'project', 'name', 'title',
+    'projectInvestment', 'project_investment', 'investmentAmount', 'investment_amount',
+    'negotiationDate', 'negotiation_date', 'cbaFrameworkVersion', 'cba_framework_version',
   ]);
 
   const toggle = (section: string) => setExpandedSection(prev => {
@@ -169,7 +169,7 @@ export default function CBAPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                   label="Project Investment"
-                  value={fmtDollars(pick(d, 'projectInvestment', 'investmentAmount', 'totalCost', 'investment') || form.totalCost)}
+                  value={fmtDollars(pick(d, 'projectInvestment', 'project_investment', 'investmentAmount', 'investment_amount', 'totalCost', 'total_cost', 'investment') || form.totalCost)}
                   icon={<Building className="w-4 h-4" />}
                   color="text-compass-400"
                 />
@@ -191,6 +191,39 @@ export default function CBAPage() {
                   icon={<Handshake className="w-4 h-4" />}
                   color="text-purple-400"
                 />
+              </div>
+
+              {/* Key Takeaways — executive summary for quick comprehension */}
+              <div className="glass-card p-5 border-l-4 border-l-emerald-500 bg-emerald-500/5">
+                <h3 className="text-sm font-semibold text-emerald-300 mb-3">Key Takeaways</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {totalCBAValue > 0 && (
+                    <div className="p-3 bg-slate-800/30 rounded-lg text-center">
+                      <div className="text-xl font-bold text-emerald-400">{fmtDollars(totalCBAValue)}</div>
+                      <div className="text-xs text-slate-500 mt-1">Total Community Investment</div>
+                    </div>
+                  )}
+                  {components.length > 0 && (
+                    <div className="p-3 bg-slate-800/30 rounded-lg text-center">
+                      <div className="text-xl font-bold text-blue-400">{components.length}</div>
+                      <div className="text-xs text-slate-500 mt-1">CBA Components Designed</div>
+                    </div>
+                  )}
+                  {(() => {
+                    const hiring = workforce?.constructionPhase || workforce?.construction_phase || workforce?.localHiringTargets?.constructionPhase;
+                    return hiring ? (
+                      <div className="p-3 bg-slate-800/30 rounded-lg text-center">
+                        <div className="text-sm font-bold text-compass-400">{String(hiring).slice(0, 40)}</div>
+                        <div className="text-xs text-slate-500 mt-1">Construction Hiring Target</div>
+                      </div>
+                    ) : comparables.length > 0 ? (
+                      <div className="p-3 bg-slate-800/30 rounded-lg text-center">
+                        <div className="text-xl font-bold text-purple-400">{comparables.length}</div>
+                        <div className="text-xs text-slate-500 mt-1">Comparable City Benchmarks</div>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
               </div>
 
               {/* Summary Banner */}

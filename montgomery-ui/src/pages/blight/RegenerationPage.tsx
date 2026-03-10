@@ -60,19 +60,32 @@ export default function RegenerationPage() {
   const parcels: any[] = raw ? (Array.isArray(raw.data) ? raw.data : Array.isArray(raw) ? raw : [raw]) : [];
 
   // Compute summary stats from actual parcel data
-  const totalAcreage = parcels.reduce((s: number, p: any) => s + (p.acreage || 0), 0);
-  const avgBlightScore = parcels.length ? Math.round(parcels.reduce((s: number, p: any) => s + (p.blightScore ?? p.score ?? 0), 0) / parcels.length) : 0;
+  const totalAcreage = parcels.reduce((s: number, p: any) => s + (p.acreage || p.acres || p.calc_acre || p.calcAcre || 0), 0);
+  const avgBlightScore = parcels.length ? Math.round(parcels.reduce((s: number, p: any) => s + (p.blightScore ?? p.blight_score ?? p.score ?? 0), 0) / parcels.length) : 0;
   const totalRecs = parcels.reduce((s: number, p: any) => s + (Array.isArray(p.recommendations) ? p.recommendations.length : 0), 0);
   const estInvestment = parcels.reduce((s: number, p: any) => {
     if (!Array.isArray(p.recommendations)) return s;
-    return s + p.recommendations.reduce((rs: number, r: any) => rs + parseCostMid(r.estimatedCost || r.costRange || r.cost || ''), 0);
+    return s + p.recommendations.reduce((rs: number, r: any) => rs + parseCostMid(r.estimatedCost || r.estimated_cost || r.costRange || r.cost_range || r.cost || ''), 0);
   }, 0);
+
+  // Find top recommendation by viability
+  const topRec = (() => {
+    let best: any = null;
+    let bestViability = 0;
+    for (const p of parcels) {
+      for (const r of (p.recommendations || [])) {
+        const v = r.viabilityPct ?? r.viability_pct ?? r.viability ?? 0;
+        if (v > bestViability) { bestViability = v; best = { ...r, parcelAddress: p.address || p.parcelNum }; }
+      }
+    }
+    return best;
+  })();
 
   // Chart data: blight score per parcel
   const chartData = parcels.map((p: any) => ({
-    name: (p.address || p.parcelNum || '').slice(0, 20),
-    blightScore: p.blightScore ?? p.score ?? 0,
-    acreage: +(p.acreage || 0).toFixed(2),
+    name: (p.address || p.parcelNum || p.parcel_num || '').slice(0, 20),
+    blightScore: p.blightScore ?? p.blight_score ?? p.score ?? 0,
+    acreage: +(p.acreage || p.acres || 0).toFixed(2),
   }));
 
   return (
@@ -129,10 +142,33 @@ export default function RegenerationPage() {
               {/* Summary Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard label="Properties" value={parcels.length} icon={<Building className="w-4 h-4" />} color="text-amber-400" />
-                <StatCard label="Total Acreage" value={totalAcreage.toFixed(1)} icon={<MapPin className="w-4 h-4" />} color="text-emerald-400" />
-                <StatCard label="Avg Blight Score" value={avgBlightScore} icon={<TrendingUp className="w-4 h-4" />} color="text-red-400" />
-                <StatCard label="Est. Investment" value={fmtDollars(estInvestment)} icon={<DollarSign className="w-4 h-4" />} color="text-compass-400" />
+                <StatCard label="Total Acreage" value={totalAcreage > 0 ? totalAcreage.toFixed(1) : parcels.length} icon={<MapPin className="w-4 h-4" />} color="text-emerald-400" />
+                <StatCard label="Regen Options" value={totalRecs} icon={<TrendingUp className="w-4 h-4" />} color="text-blight-400" />
+                <StatCard label="Est. Investment" value={estInvestment > 0 ? fmtDollars(estInvestment) : `${parcels.length} sites`} icon={<DollarSign className="w-4 h-4" />} color="text-compass-400" />
               </div>
+
+              {/* Key Findings card */}
+              {parcels.length > 0 && (
+                <div className="glass-card p-5 border-l-4 border-l-blight-500 bg-blight-500/5">
+                  <h3 className="text-sm font-semibold text-blight-300 mb-3">Blueprint Summary</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 bg-slate-800/30 rounded-lg text-center">
+                      <div className="text-xl font-bold text-amber-400">{parcels.length}</div>
+                      <div className="text-xs text-slate-500 mt-1">Properties Analyzed</div>
+                    </div>
+                    <div className="p-3 bg-slate-800/30 rounded-lg text-center">
+                      <div className="text-xl font-bold text-blight-400">{totalRecs}</div>
+                      <div className="text-xs text-slate-500 mt-1">Reuse Options Generated</div>
+                    </div>
+                    {topRec && (
+                      <div className="p-3 bg-slate-800/30 rounded-lg text-center">
+                        <div className="text-sm font-bold text-emerald-400">{topRec.reuse || topRec.option || topRec.title || 'Top Option'}</div>
+                        <div className="text-xs text-slate-500 mt-1">Highest Viability ({topRec.viabilityPct ?? topRec.viability}%)</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Blight Score Chart */}
               {chartData.length > 1 && (
@@ -154,9 +190,14 @@ export default function RegenerationPage() {
               <div className="space-y-4">
                 {parcels.map((p: any, idx: number) => {
                   const isExpanded = !collapsedParcels.has(idx);
-                  const badge = catalyticBadge(p.catalyticPotential || '');
+                  const badge = catalyticBadge(p.catalyticPotential || p.catalytic_potential || '');
+                  const parcelAddr = p.address || p.prop_address || p.propAddress || p.parcelNum || p.parcel_num;
+                  const parcelNum = p.parcelNum || p.parcel_num || p.parcelNo || p.parcel_no;
+                  const parcelAcreage = p.acreage || p.acres || p.calc_acre || p.calcAcre || 0;
+                  const parcelZoning = p.zoning || p.zone || p.use_type || p.useType || '';
+                  const recsCount = Array.isArray(p.recommendations) ? p.recommendations.length : 0;
                   return (
-                    <div key={p.parcelNum || idx} className="glass-card overflow-hidden">
+                    <div key={parcelNum || idx} className="glass-card overflow-hidden">
                       {/* Parcel Header */}
                       <button
                         onClick={() => setCollapsedParcels(prev => { const next = new Set(prev); if (next.has(idx)) next.delete(idx); else next.add(idx); return next; })}
@@ -164,20 +205,20 @@ export default function RegenerationPage() {
                       >
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blight-500/20 flex items-center justify-center">
-                            <span className={`text-lg font-bold ${blightColor(p.blightScore ?? p.score ?? 0)}`}>{p.blightScore ?? p.score ?? '—'}</span>
+                            <span className="text-lg font-bold text-blight-400">{idx + 1}</span>
                           </div>
                           <div className="min-w-0">
-                            <h4 className="text-sm font-semibold text-slate-200 truncate">{p.address || p.parcelNum}</h4>
+                            <h4 className="text-sm font-semibold text-slate-200 truncate">{parcelAddr}</h4>
                             <div className="flex items-center gap-3 mt-0.5">
-                              <span className="text-xs text-slate-500">Parcel {p.parcelNum}</span>
-                              <span className="text-xs text-slate-500">{p.acreage?.toFixed(2)} ac</span>
-                              <span className="text-xs text-slate-500">Zone: {p.zoning}</span>
+                              {parcelNum && <span className="text-xs text-slate-500">Parcel {parcelNum}</span>}
+                              {parcelAcreage > 0 && <span className="text-xs text-slate-500">{Number(parcelAcreage).toFixed(2)} ac</span>}
+                              {parcelZoning && <span className="text-xs text-slate-500">Zone: {parcelZoning}</span>}
                               <span className={`text-xs px-1.5 py-0.5 rounded border ${badge.cls}`}>{badge.label}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs text-slate-500">{Array.isArray(p.recommendations) ? p.recommendations.length : 0} options</span>
+                          <span className="text-xs text-slate-500">{recsCount} options</span>
                           {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                         </div>
                       </button>
@@ -186,10 +227,10 @@ export default function RegenerationPage() {
                       {isExpanded && (
                         <div className="px-5 pb-5 space-y-4 border-t border-slate-700/30">
                           {/* Market Momentum */}
-                          {p.marketMomentumImpact && (
+                          {(p.marketMomentumImpact || p.market_momentum_impact) && (
                             <div className="mt-4 p-3 bg-slate-800/40 rounded-lg border-l-3 border-l-blight-500">
                               <h5 className="text-xs font-semibold text-blight-400 uppercase tracking-wider mb-1">Market Momentum Impact</h5>
-                              <Markdown size="sm">{p.marketMomentumImpact}</Markdown>
+                              <Markdown size="sm">{p.marketMomentumImpact || p.market_momentum_impact}</Markdown>
                             </div>
                           )}
 
@@ -201,9 +242,9 @@ export default function RegenerationPage() {
                                 {p.recommendations.map((rec: any, ri: number) => (
                                   <div key={ri} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
                                     {(() => {
-                                      const recTitle = rec.reuse || rec.option || rec.title || rec.name || `Option ${ri + 1}`;
-                                      const recCost = rec.estimatedCost || rec.costRange || rec.cost;
-                                      const recViability = rec.viabilityPct ?? rec.viability;
+                                      const recTitle = rec.reuse || rec.option || rec.title || rec.name || rec.reuse_option || `Option ${ri + 1}`;
+                                      const recCost = rec.estimatedCost || rec.estimated_cost || rec.costRange || rec.cost_range || rec.cost;
+                                      const recViability = rec.viabilityPct ?? rec.viability_pct ?? rec.viability ?? rec.viability_percentage;
                                       return (
                                         <>
                                     <div className="flex items-start justify-between gap-3">
@@ -245,36 +286,51 @@ export default function RegenerationPage() {
                           )}
 
                           {/* Catalytic Potential */}
-                          {p.catalyticPotential && (
+                          {(p.catalyticPotential || p.catalytic_potential) && (
                             <div className="p-3 bg-slate-800/40 rounded-lg">
                               <h5 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1">Catalytic Potential</h5>
-                              <p className="text-sm text-slate-400 leading-relaxed">{p.catalyticPotential}</p>
+                              <p className="text-sm text-slate-400 leading-relaxed">{p.catalyticPotential || p.catalytic_potential}</p>
                             </div>
                           )}
 
                           {/* Nearby Context */}
-                          {p.nearbyContext && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                              {p.nearbyContext.schoolsInCity != null && (
-                                <div className="p-2 bg-slate-800/30 rounded-lg text-center">
-                                  <div className="text-lg font-bold text-blue-400">{p.nearbyContext.schoolsInCity}</div>
-                                  <div className="text-xs text-slate-500">Schools in City</div>
-                                </div>
-                              )}
-                              {p.nearbyContext.communityCentersInCity != null && (
-                                <div className="p-2 bg-slate-800/30 rounded-lg text-center">
-                                  <div className="text-lg font-bold text-purple-400">{p.nearbyContext.communityCentersInCity}</div>
-                                  <div className="text-xs text-slate-500">Community Centers</div>
-                                </div>
-                              )}
-                              {Array.isArray(p.nearbyContext.cityWideTopBlightAreas) && (
-                                <div className="p-2 bg-slate-800/30 rounded-lg text-center">
-                                  <div className="text-lg font-bold text-red-400">{p.nearbyContext.cityWideTopBlightAreas.length}</div>
-                                  <div className="text-xs text-slate-500">Top Blight Areas</div>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          {(() => {
+                            const ctx = p.nearbyContext || p.nearby_context;
+                            if (!ctx) return null;
+                            // If string, render directly
+                            if (typeof ctx === 'string') return (
+                              <div className="p-3 bg-slate-800/40 rounded-lg">
+                                <h5 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Nearby Context</h5>
+                                <p className="text-sm text-slate-400">{ctx}</p>
+                              </div>
+                            );
+                            // If object, render as grid
+                            const schoolCount = ctx.schoolsInCity ?? ctx.schools_in_city ?? ctx.schools ?? ctx.nearbySchools ?? ctx.nearby_schools;
+                            const centerCount = ctx.communityCentersInCity ?? ctx.community_centers_in_city ?? ctx.communityCenters ?? ctx.community_centers;
+                            const blightAreas = ctx.cityWideTopBlightAreas ?? ctx.city_wide_top_blight_areas ?? ctx.topBlightAreas ?? ctx.top_blight_areas;
+                            return (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {schoolCount != null && (
+                                  <div className="p-2 bg-slate-800/30 rounded-lg text-center">
+                                    <div className="text-lg font-bold text-blue-400">{schoolCount}</div>
+                                    <div className="text-xs text-slate-500">Schools in City</div>
+                                  </div>
+                                )}
+                                {centerCount != null && (
+                                  <div className="p-2 bg-slate-800/30 rounded-lg text-center">
+                                    <div className="text-lg font-bold text-purple-400">{centerCount}</div>
+                                    <div className="text-xs text-slate-500">Community Centers</div>
+                                  </div>
+                                )}
+                                {Array.isArray(blightAreas) && (
+                                  <div className="p-2 bg-slate-800/30 rounded-lg text-center">
+                                    <div className="text-lg font-bold text-red-400">{blightAreas.length}</div>
+                                    <div className="text-xs text-slate-500">Top Blight Areas</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>

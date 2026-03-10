@@ -65,15 +65,15 @@ export default function ScenarioPage() {
   /* ─── Resilient field extraction ─── */
 
   // --- Total Revenue / Tax Revenue ---
-  const taxRevenueObj = pick(d, 'taxRevenue', 'taxImpact', 'fiscalImpact', 'revenueProjection');
+  const taxRevenueObj = pick(d, 'taxRevenue', 'tax_revenue', 'taxImpact', 'tax_impact', 'fiscalImpact', 'fiscal_impact', 'revenueProjection', 'revenue_projection', 'revenueProjections', 'revenue_projections');
   const totalRevenue = (() => {
     // Try flat top-level numbers
-    const flat = resolveNumeric(pick(d, 'totalRevenue', 'totalTaxRevenue', 'estimatedRevenue', 'fiscalImpact', 'totalEconomicImpact', 'annualTaxRevenue'));
+    const flat = resolveNumeric(pick(d, 'totalRevenue', 'total_revenue', 'totalTaxRevenue', 'total_tax_revenue', 'estimatedRevenue', 'estimated_revenue', 'fiscalImpact', 'fiscal_impact', 'totalEconomicImpact', 'total_economic_impact', 'annualTaxRevenue', 'annual_tax_revenue'));
     if (flat > 0) return flat;
     // Try nested taxRevenue object
     if (taxRevenueObj && typeof taxRevenueObj === 'object') {
       // Try specific sub-fields
-      for (const key of ['annual', 'annualRevenue', 'total', 'totalAnnual', 'postAbatement', 'propertyTax', 'salesTax']) {
+      for (const key of ['annual', 'annualRevenue', 'annual_revenue', 'total', 'totalAnnual', 'total_annual', 'postAbatement', 'post_abatement', 'propertyTax', 'property_tax', 'salesTax', 'sales_tax', 'overAbatementPeriod', 'over_abatement_period']) {
         const val = (taxRevenueObj as any)[key];
         if (val != null) {
           const n = resolveNumeric(val);
@@ -112,17 +112,17 @@ export default function ScenarioPage() {
   })();
 
   // --- Jobs Created ---
-  const jobImpactObj = pick(d, 'jobImpact', 'jobCreation', 'employment', 'laborMarket', 'jobs');
+  const jobImpactObj = pick(d, 'jobImpact', 'job_impact', 'jobCreation', 'job_creation', 'employment', 'laborMarket', 'labor_market', 'jobs');
   const jobsCreated = (() => {
     // Try flat top-level
-    const flat = resolveNumeric(pick(d, 'jobsCreated', 'totalJobs', 'totalJobsCreated', 'directJobs'));
+    const flat = resolveNumeric(pick(d, 'jobsCreated', 'jobs_created', 'totalJobs', 'total_jobs', 'totalJobsCreated', 'total_jobs_created', 'directJobs', 'direct_jobs'));
     if (flat > 0) return flat;
     // Try structured job impact object
     if (jobImpactObj && typeof jobImpactObj === 'object') {
       let total = 0;
-      const cp = pick(jobImpactObj, 'constructionPhase', 'constructionJobs', 'construction', 'temporary');
-      const op = pick(jobImpactObj, 'operationalPhase', 'permanentJobs', 'operational', 'permanent');
-      const sec = pick(jobImpactObj, 'secondaryJobs', 'indirectJobs', 'secondary', 'indirect');
+      const cp = pick(jobImpactObj, 'constructionPhase', 'construction_phase', 'constructionJobs', 'construction_jobs', 'construction', 'temporary');
+      const op = pick(jobImpactObj, 'operationalPhase', 'operational_phase', 'permanentJobs', 'permanent_jobs', 'operational', 'permanent');
+      const sec = pick(jobImpactObj, 'secondaryJobs', 'secondary_jobs', 'indirectJobs', 'indirect_jobs', 'secondary', 'indirect');
       for (const phase of [cp, op, sec]) {
         if (phase == null) continue;
         if (typeof phase === 'number') { total += phase; continue; }
@@ -146,23 +146,34 @@ export default function ScenarioPage() {
   })();
 
   // --- ROI / Confidence ---
-  const roi = resolveNumeric(pick(d, 'roi', 'returnOnInvestment', 'roiPercent', 'estimatedROI'));
-  const confidenceLevel = pick(d, 'confidenceLevel', 'confidence', 'confidenceRating', 'confidenceScore')
+  const roi = resolveNumeric(pick(d, 'roi', 'returnOnInvestment', 'roiPercent', 'estimatedROI', 'return_on_investment', 'roi_percent', 'estimated_roi'));
+  const confidenceLevelRaw = pick(d, 'confidenceLevel', 'confidence_level', 'confidence', 'confidenceRating', 'confidence_rating', 'confidenceScore', 'confidence_score')
     || deepFind(d, /^confidence/i);
+  // Handle when confidence is an object like {level: "Moderate", score: 0.7}
+  const confidenceLevel = (() => {
+    if (!confidenceLevelRaw) return null;
+    if (typeof confidenceLevelRaw === 'string') return confidenceLevelRaw;
+    if (typeof confidenceLevelRaw === 'number') return `${confidenceLevelRaw}%`;
+    if (typeof confidenceLevelRaw === 'object') {
+      return pick(confidenceLevelRaw, 'level', 'rating', 'overall', 'value', 'description', 'text', 'score', 'grade')
+        || smartText(confidenceLevelRaw);
+    }
+    return String(confidenceLevelRaw);
+  })();
 
   // --- Multiplier ---
-  const multiplier = resolveNumeric(pick(d, 'fiscalMultiplier', 'multiplier', 'economicMultiplier', 'impactMultiplier'));
+  const multiplier = resolveNumeric(pick(d, 'fiscalMultiplier', 'fiscal_multiplier', 'multiplier', 'economicMultiplier', 'economic_multiplier', 'impactMultiplier', 'impact_multiplier'));
 
   // --- Assumptions ---
   const assumptions: any[] = (() => {
-    const a = pick(d, 'assumptions', 'keyAssumptions', 'modelAssumptions');
+    const a = pick(d, 'assumptions', 'keyAssumptions', 'key_assumptions', 'modelAssumptions', 'model_assumptions');
     return Array.isArray(a) ? a : [];
   })();
 
   // --- Impact Analysis (for the scenario page, this is the big nested section) ---
-  const impactAnalysis = pick(d, 'impactAnalysis', 'impacts', 'economicImpact', 'impactAreas', 'impactSummary');
-  const simulationResults = pick(d, 'simulationResults', 'results', 'simulation');
-  const simulationParams = pick(d, 'simulationParameters', 'parameters', 'params', 'modelParameters');
+  const impactAnalysis = pick(d, 'impactAnalysis', 'impact_analysis', 'impacts', 'economicImpact', 'economic_impact', 'impactAreas', 'impact_areas', 'impactSummary', 'impact_summary');
+  const simulationResults = pick(d, 'simulationResults', 'simulation_results', 'results', 'simulation');
+  const simulationParams = pick(d, 'simulationParameters', 'simulation_parameters', 'parameters', 'params', 'modelParameters', 'model_parameters');
 
   // Yearly projections — the AI might use many names
   const projections: any[] = (() => {
@@ -192,45 +203,45 @@ export default function ScenarioPage() {
   })();
 
   // Impacts — can be named many ways
-  const impacts = pick(d, 'impacts', 'economicImpact', 'impactAreas', 'impactSummary', 'sectorImpacts');
+  const impacts = pick(d, 'impacts', 'economicImpact', 'economic_impact', 'impactAreas', 'impact_areas', 'impactSummary', 'impact_summary', 'sectorImpacts', 'sector_impacts');
 
   // Narrative
-  const narrative = pick(d, 'narrative', 'analysis', 'summary', 'description', 'executiveSummary', 'conclusion');
+  const narrative = pick(d, 'narrative', 'analysis', 'summary', 'description', 'executiveSummary', 'executive_summary', 'conclusion', 'scenarioAnalysis', 'scenario_analysis');
 
   // Job impact, housing impact, utility impact, community benefit, risk factors (from API route type)
-  const jobImpact = pick(d, 'jobImpact', 'jobCreation', 'employment', 'laborMarket');
-  const housingImpact = pick(d, 'housingImpact', 'housing', 'realEstate');
-  const utilityImpact = pick(d, 'utilityImpact', 'utilities', 'infrastructure');
-  const communityBenefit = pick(d, 'communityBenefit', 'community', 'socialImpact');
+  const jobImpact = pick(d, 'jobImpact', 'job_impact', 'jobCreation', 'job_creation', 'employment', 'laborMarket', 'labor_market');
+  const housingImpact = pick(d, 'housingImpact', 'housing_impact', 'housing', 'realEstate', 'real_estate');
+  const utilityImpact = pick(d, 'utilityImpact', 'utility_impact', 'utilities', 'infrastructure');
+  const communityBenefit = pick(d, 'communityBenefit', 'community_benefit', 'community', 'socialImpact', 'social_impact');
   const riskFactors: any[] = (() => {
-    const r = pick(d, 'riskFactors', 'risks', 'challenges', 'threats', 'concerns');
+    const r = pick(d, 'riskFactors', 'risk_factors', 'risks', 'challenges', 'threats', 'concerns');
     return Array.isArray(r) ? r : [];
   })();
 
   // Base data snapshot
-  const baseData = pick(d, 'baseDataSnapshot', 'baseData', 'contextData', 'marketData', 'baselineData');
+  const baseData = pick(d, 'baseDataSnapshot', 'base_data_snapshot', 'baseData', 'base_data', 'contextData', 'context_data', 'marketData', 'market_data', 'baselineData', 'baseline_data');
 
   const handledKeys = new Set([
-    'totalRevenue', 'revenue', 'totalTaxRevenue', 'estimatedRevenue', 'fiscalImpact', 'taxRevenue', 'totalEconomicImpact', 'taxImpact',
-    'jobsCreated', 'jobs', 'totalJobs', 'jobCreation', 'directJobs', 'employment',
-    'roi', 'returnOnInvestment', 'roiPercent', 'estimatedROI',
-    'fiscalMultiplier', 'multiplier', 'economicMultiplier', 'impactMultiplier',
+    'totalRevenue', 'total_revenue', 'revenue', 'totalTaxRevenue', 'total_tax_revenue', 'estimatedRevenue', 'estimated_revenue', 'fiscalImpact', 'fiscal_impact', 'taxRevenue', 'tax_revenue', 'totalEconomicImpact', 'total_economic_impact', 'taxImpact', 'tax_impact', 'revenueProjection', 'revenue_projection', 'revenueProjections', 'revenue_projections', 'annualTaxRevenue', 'annual_tax_revenue',
+    'jobsCreated', 'jobs_created', 'jobs', 'totalJobs', 'total_jobs', 'jobCreation', 'job_creation', 'directJobs', 'direct_jobs', 'employment',
+    'roi', 'returnOnInvestment', 'return_on_investment', 'roiPercent', 'roi_percent', 'estimatedROI', 'estimated_roi',
+    'fiscalMultiplier', 'fiscal_multiplier', 'multiplier', 'economicMultiplier', 'economic_multiplier', 'impactMultiplier', 'impact_multiplier',
     'yearlyProjection', 'projections', 'annualProjection', 'yearlyForecast', 'forecast', 'yearlyData', 'timeline',
-    'impacts', 'economicImpact', 'impactAreas', 'impactSummary', 'sectorImpacts',
-    'narrative', 'analysis', 'summary', 'description', 'executiveSummary', 'conclusion',
-    'jobImpact', 'laborMarket', 'housingImpact', 'housing', 'realEstate',
-    'utilityImpact', 'utilities', 'infrastructure',
-    'communityBenefit', 'community', 'socialImpact',
-    'riskFactors', 'risks', 'challenges', 'threats', 'concerns',
-    'scenarioResult', 'simulation', 'scenario', 'data', 'modelUsed',
-    'confidenceLevel', 'confidence', 'confidenceRating', 'confidenceScore',
-    'assumptions', 'keyAssumptions', 'modelAssumptions',
-    'impactAnalysis', 'simulationResults', 'results',
-    'simulationParameters', 'parameters', 'params', 'modelParameters',
-    'baseDataSnapshot', 'baseData', 'contextData', 'marketData', 'baselineData',
+    'impacts', 'economicImpact', 'economic_impact', 'impactAreas', 'impact_areas', 'impactSummary', 'impact_summary', 'sectorImpacts', 'sector_impacts',
+    'narrative', 'analysis', 'summary', 'description', 'executiveSummary', 'executive_summary', 'conclusion', 'scenarioAnalysis', 'scenario_analysis',
+    'jobImpact', 'job_impact', 'laborMarket', 'labor_market', 'housingImpact', 'housing_impact', 'housing', 'realEstate', 'real_estate',
+    'utilityImpact', 'utility_impact', 'utilities', 'infrastructure',
+    'communityBenefit', 'community_benefit', 'community', 'socialImpact', 'social_impact',
+    'riskFactors', 'risk_factors', 'risks', 'challenges', 'threats', 'concerns',
+    'scenarioResult', 'simulation', 'scenario', 'data', 'modelUsed', 'model_used',
+    'confidenceLevel', 'confidence_level', 'confidence', 'confidenceRating', 'confidence_rating', 'confidenceScore', 'confidence_score',
+    'assumptions', 'keyAssumptions', 'key_assumptions', 'modelAssumptions', 'model_assumptions',
+    'impactAnalysis', 'impact_analysis', 'simulationResults', 'simulation_results', 'results',
+    'simulationParameters', 'simulation_parameters', 'parameters', 'params', 'modelParameters', 'model_parameters',
+    'baseDataSnapshot', 'base_data_snapshot', 'baseData', 'base_data', 'contextData', 'context_data', 'marketData', 'market_data', 'baselineData', 'baseline_data',
     // Monte Carlo meta fields
-    'simulationId', 'simulationName', 'simulationEngine', 'timestamp',
-    'analysisHorizonsYears', 'contextualInvestments',
+    'simulationId', 'simulation_id', 'simulationName', 'simulation_name', 'simulationEngine', 'simulation_engine', 'timestamp',
+    'analysisHorizonsYears', 'analysis_horizons_years', 'contextualInvestments', 'contextual_investments',
   ]);
 
   /** Flatten a nested year object to get just the `mean` values for charting */
@@ -346,9 +357,59 @@ export default function ScenarioPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard label="Tax Revenue" value={taxRevenueDisplay} icon={<DollarSign className="w-4 h-4" />} color="text-emerald-400" />
                 <StatCard label="Jobs Created" value={jobsCreated > 0 ? formatNumber(jobsCreated) : '—'} icon={<Users className="w-4 h-4" />} color="text-blight-400" />
-                <StatCard label={roi > 0 ? "ROI" : confidenceLevel ? "Confidence" : "Projections"} value={roi > 0 ? `${roi}%` : confidenceLevel ? String(confidenceLevel) : (projections.length > 0 ? `${projections.length} Periods` : hasData ? 'N/A' : '—')} icon={<TrendingUp className="w-4 h-4" />} color="text-compass-400" />
-                <StatCard label={multiplier > 0 ? "Multiplier" : riskFactors.length > 0 ? "Risk Factors" : assumptions.length > 0 ? "Assumptions" : "Impact Areas"} value={multiplier > 0 ? `${multiplier}x` : riskFactors.length > 0 ? String(riskFactors.length) : assumptions.length > 0 ? String(assumptions.length) : hasData ? 'N/A' : '—'} icon={<Building className="w-4 h-4" />} color="text-amber-400" />
+                <StatCard label={roi > 0 ? "ROI" : confidenceLevel ? "Confidence" : "Projections"} value={roi > 0 ? `${roi}%` : confidenceLevel ? confidenceLevel : (projections.length > 0 ? `${projections.length} Periods` : '—')} icon={<TrendingUp className="w-4 h-4" />} color="text-compass-400" />
+                <StatCard label={multiplier > 0 ? "Multiplier" : riskFactors.length > 0 ? "Risk Factors" : assumptions.length > 0 ? "Assumptions" : "Impact Areas"} value={multiplier > 0 ? `${multiplier}x` : riskFactors.length > 0 ? String(riskFactors.length) : assumptions.length > 0 ? String(assumptions.length) : '—'} icon={<Building className="w-4 h-4" />} color="text-amber-400" />
               </div>
+
+              {/* Executive Summary — at-a-glance key findings */}
+              {(narrative || (riskFactors.length > 0) || jobImpact || housingImpact) && (
+                <div className="glass-card p-5 border-l-4 border-l-compass-500 bg-compass-500/5">
+                  <h3 className="text-sm font-semibold text-compass-300 mb-3">Key Findings</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {jobImpact && typeof jobImpact === 'object' && (() => {
+                      const cp = pick(jobImpact, 'constructionPhase', 'construction_phase', 'construction');
+                      const op = pick(jobImpact, 'operationalPhase', 'operational_phase', 'operational');
+                      const cpJobs = cp ? resolveNumeric(typeof cp === 'object' ? (cp.jobs ?? cp.estimated ?? cp.count ?? cp) : cp) : 0;
+                      const opJobs = op ? resolveNumeric(typeof op === 'object' ? (op.jobs ?? op.estimated ?? op.count ?? op) : op) : 0;
+                      return (cpJobs > 0 || opJobs > 0) ? (
+                        <div className="p-3 bg-slate-800/30 rounded-lg">
+                          <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Job Creation</div>
+                          {cpJobs > 0 && <div className="text-sm text-slate-300"><strong className="text-blue-400">{cpJobs.toLocaleString()}</strong> construction jobs</div>}
+                          {opJobs > 0 && <div className="text-sm text-slate-300"><strong className="text-emerald-400">{opJobs.toLocaleString()}</strong> permanent jobs</div>}
+                        </div>
+                      ) : null;
+                    })()}
+                    {housingImpact && typeof housingImpact === 'object' && (() => {
+                      const price = pick(housingImpact, 'priceChangeNearSite', 'price_change_near_site', 'priceChange', 'price_change');
+                      const risk = pick(housingImpact, 'displacementRisk', 'displacement_risk', 'displacement');
+                      return (price || risk) ? (
+                        <div className="p-3 bg-slate-800/30 rounded-lg">
+                          <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Housing Impact</div>
+                          {price && <div className="text-sm text-slate-300">{String(price)}</div>}
+                          {risk && <div className="text-sm text-amber-400 text-xs mt-0.5">Displacement risk: {String(risk)}</div>}
+                        </div>
+                      ) : null;
+                    })()}
+                    {taxRevenueObj && typeof taxRevenueObj === 'object' && (() => {
+                      const annual = pick(taxRevenueObj, 'annual', 'annualRevenue', 'annual_revenue');
+                      const post = pick(taxRevenueObj, 'postAbatement', 'post_abatement', 'postAbatementAnnual');
+                      return (annual || post) ? (
+                        <div className="p-3 bg-slate-800/30 rounded-lg">
+                          <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Tax Revenue</div>
+                          {annual && <div className="text-sm text-slate-300">Annual: <strong className="text-emerald-400">{String(annual)}</strong></div>}
+                          {post && <div className="text-sm text-slate-300">Post-abatement: <strong className="text-emerald-400">{String(post)}</strong></div>}
+                        </div>
+                      ) : null;
+                    })()}
+                    {riskFactors.length > 0 && (
+                      <div className="p-3 bg-slate-800/30 rounded-lg">
+                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Top Risk</div>
+                        <div className="text-sm text-amber-300">{typeof riskFactors[0] === 'string' ? riskFactors[0].slice(0, 120) : (pick(riskFactors[0], 'description', 'text', 'risk', 'factor', 'name') || smartText(riskFactors[0])).slice(0, 120)}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Simulation Parameters (if present) */}
               {simulationParams && typeof simulationParams === 'object' && (
