@@ -16,8 +16,10 @@ export async function GET(request: Request) {
     const shift = searchParams.get("shift") || undefined;
 
     const where: Record<string, unknown> = {};
-    if (district) where.district = district;
-    if (shift) where.shift = shift;
+    if (district) where.district = { contains: district, mode: "insensitive" };
+    if (shift) where.shift = { contains: shift, mode: "insensitive" };
+    const riskLevel = searchParams.get("riskLevel") || undefined;
+    if (riskLevel) where.riskLevel = { equals: riskLevel, mode: "insensitive" };
 
     const [zones, total] = await Promise.all([
       prisma.forceMultiplierZone.findMany({

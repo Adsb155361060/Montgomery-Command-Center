@@ -16,8 +16,10 @@ export async function GET(request: Request) {
     const minScore = parseInt(searchParams.get("minScore") || "0", 10);
 
     const where: Record<string, unknown> = {};
-    if (district) where.district = district;
+    if (district) where.district = { contains: district, mode: "insensitive" };
     if (minScore > 0) where.score = { gte: minScore };
+    const riskLevel = searchParams.get("riskLevel") || undefined;
+    if (riskLevel) where.riskLevel = { equals: riskLevel, mode: "insensitive" };
 
     const [scores, total] = await Promise.all([
       prisma.blightScore.findMany({ where, skip, take: limit, orderBy: { score: "desc" } }),

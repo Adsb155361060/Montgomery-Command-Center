@@ -14,6 +14,10 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {};
     if (zoning) where.zoning = { contains: zoning, mode: "insensitive" };
     if (maintBy) where.maintBy = { contains: maintBy, mode: "insensitive" };
+    const neighborhood = searchParams.get("neighborhood") || undefined;
+    if (neighborhood) where.neighborhood = { contains: neighborhood, mode: "insensitive" };
+    const address = searchParams.get("address") || undefined;
+    if (address) where.propAddress = { contains: address, mode: "insensitive" };
 
     const [properties, total] = await Promise.all([
       prisma.cityOwnedProperty.findMany({ where, skip, take: limit, orderBy: { id: "asc" } }),

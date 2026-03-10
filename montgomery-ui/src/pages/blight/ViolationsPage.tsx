@@ -1,21 +1,42 @@
 import { useState } from 'react';
 import { useFetch } from '@/hooks/useFetch';
 import { blight } from '@/lib/api';
-import { LoadingScreen, ErrorDisplay, ModuleHeader, DataTable, Pagination } from '@/components/shared';
-import { FileWarning, Filter } from 'lucide-react';
+import { LoadingScreen, ErrorDisplay, ModuleHeader, DataTable, Pagination, FilterBar, useFilters } from '@/components/shared';
+import { FileWarning } from 'lucide-react';
+import type { FilterField } from '@/components/shared';
+
+const PAGE_SIZE = 25;
+
+const FILTER_FIELDS: FilterField[] = [
+  { key: 'district', label: 'District', type: 'text', placeholder: 'Search district...' },
+  { key: 'status', label: 'Status', type: 'select', options: [
+    { value: 'open', label: 'Open' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'in_progress', label: 'In Progress' },
+  ]},
+  { key: 'caseType', label: 'Violation Type', type: 'text', placeholder: 'Search type...' },
+  { key: 'address', label: 'Address', type: 'text', placeholder: 'Search address...' },
+];
 
 export default function ViolationsPage() {
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState('');
-  const { data, loading, error, refetch } = useFetch(() => blight.violations({ page, limit: 25, status: status || undefined }), [page, status]);
+  const { filters, setFilter, resetFilters, filterParams } = useFilters(
+    { district: '', status: '', caseType: '', address: '' },
+    setPage,
+  );
+
+  const { data, loading, error, refetch, raw } = useFetch(
+    () => blight.violations({ page, limit: PAGE_SIZE, ...filterParams }),
+    [page, filters.district, filters.status, filters.caseType, filters.address]
+  );
 
   if (loading) return <LoadingScreen message="Loading code violations..." />;
   if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 
-  const raw = data as any;
-  const items = Array.isArray(raw) ? raw : (raw?.data || raw?.violations || []);
-  const pagination = raw?.pagination;
-  const totalPages = pagination?.totalPages ?? pagination?.pages ?? 1;
+  const items = Array.isArray(data) ? data : (data as any)?.data || (data as any)?.violations || [];
+  const pagination = (raw as any)?.pagination;
+  const totalPages = pagination?.totalPages ?? 1;
+  const totalRecords = pagination?.total;
 
   const columns = [
     { key: 'offenseNum', label: 'Case #', render: (_v: any, r: any) => <span className="font-mono text-xs text-blight-400">{r.offenseNum || r.caseNumber || r.id}</span> },
@@ -30,21 +51,16 @@ export default function ViolationsPage() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <ModuleHeader title="Code Violations" subtitle="Building and property code violations database" accentColor="bg-blight-500" icon={<FileWarning className="w-6 h-6" />}>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} className="input-field w-40 text-sm">
-            <option value="">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-            <option value="in_progress">In Progress</option>
-          </select>
-        </div>
-      </ModuleHeader>
+    <div className="space-y-4 animate-fade-in">
+      <ModuleHeader title="Code Violations" subtitle="Building and property code violations database" accentColor="bg-blight-500" icon={<FileWarning className="w-6 h-6" />} />
 
-      <DataTable columns={columns} data={items} emptyMessage="No code violations found" />
-      {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
+      <FilterBar filters={FILTER_FIELDS} values={filters} onChange={setFilter} onReset={resetFilters} accentColor="blight" />
+
+      <div className="glass-card overflow-hidden">
+        <DataTable columns={columns} data={items} emptyMessage="No code violations found" />
+      </div>
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} totalRecords={totalRecords} pageSize={PAGE_SIZE} />
     </div>
   );
 }

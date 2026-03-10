@@ -1,6 +1,121 @@
 import { cn } from '@/lib/utils';
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCw, Filter, X, Search } from 'lucide-react';
+import { useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
+
+// ── Filter Bar ──
+export interface FilterField {
+  key: string;
+  label: string;
+  type: 'text' | 'select' | 'number';
+  placeholder?: string;
+  options?: Array<{ value: string; label: string }>;
+}
+
+export function FilterBar({
+  filters,
+  values,
+  onChange,
+  onReset,
+  accentColor = 'amber',
+}: {
+  filters: FilterField[];
+  values: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+  onReset: () => void;
+  accentColor?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const activeCount = Object.values(values).filter(Boolean).length;
+
+  return (
+    <div className="glass-card p-3">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className={cn(
+            'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+            expanded
+              ? `bg-${accentColor}-500/10 text-${accentColor}-500 border border-${accentColor}-500/20`
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+          )}
+        >
+          <Filter className="w-4 h-4" />
+          Filters
+          {activeCount > 0 && (
+            <span className={`ml-1 w-5 h-5 rounded-full bg-${accentColor}-500 text-white text-[10px] flex items-center justify-center font-bold`}>
+              {activeCount}
+            </span>
+          )}
+        </button>
+        {activeCount > 0 && (
+          <button
+            onClick={onReset}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-red-500 hover:bg-red-500/10 transition-all"
+          >
+            <X className="w-3 h-3" /> Clear All
+          </button>
+        )}
+      </div>
+
+      {expanded && (
+        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {filters.map(f => (
+            <div key={f.key} className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{f.label}</label>
+              {f.type === 'select' ? (
+                <select
+                  value={values[f.key] || ''}
+                  onChange={e => onChange(f.key, e.target.value)}
+                  className="input-field text-sm"
+                >
+                  <option value="">{f.placeholder || `All ${f.label}`}</option>
+                  {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type={f.type}
+                    value={values[f.key] || ''}
+                    onChange={e => onChange(f.key, e.target.value)}
+                    placeholder={f.placeholder || `Search ${f.label.toLowerCase()}...`}
+                    className="input-field text-sm pl-8 w-full"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Hook to manage filter state with debounce and page reset */
+export function useFilters(
+  initialFilters: Record<string, string>,
+  setPage: (p: number) => void,
+) {
+  const [filters, setFilters] = useState(initialFilters);
+
+  const setFilter = useCallback((key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  }, [setPage]);
+
+  const resetFilters = useCallback(() => {
+    setFilters(initialFilters);
+    setPage(1);
+  }, [initialFilters, setPage]);
+
+  // Build params object from filters (only include non-empty values)
+  const filterParams = Object.fromEntries(
+    Object.entries(filters).filter(([, v]) => v !== '')
+  );
+
+  return { filters, setFilter, resetFilters, filterParams };
+}
 
 // ── Loading Spinner ──
 export function Spinner({ size = 'md', className }: { size?: 'sm' | 'md' | 'lg'; className?: string }) {
@@ -169,31 +284,84 @@ export function Pagination({
   page,
   totalPages,
   onPageChange,
+  totalRecords,
+  pageSize,
 }: {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  totalRecords?: number;
+  pageSize?: number;
 }) {
   if (totalPages <= 1) return null;
+
+  // Calculate visible page buttons
+  const maxButtons = 5;
+  let startPage = Math.max(1, page - Math.floor(maxButtons / 2));
+  const endPage = Math.min(totalPages, startPage + maxButtons - 1);
+  if (endPage - startPage + 1 < maxButtons) {
+    startPage = Math.max(1, endPage - maxButtons + 1);
+  }
+  const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+
+  const showingFrom = totalRecords ? (page - 1) * (pageSize || 25) + 1 : undefined;
+  const showingTo = totalRecords ? Math.min(page * (pageSize || 25), totalRecords) : undefined;
+
   return (
-    <div className="flex items-center justify-center gap-2 mt-6">
-      <button
-        onClick={() => onPageChange(Math.max(1, page - 1))}
-        disabled={page <= 1}
-        className="btn-ghost disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-      >
-        Previous
-      </button>
-      <span className="text-sm text-slate-400 px-4">
-        Page {page} of {totalPages}
-      </span>
-      <button
-        onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-        disabled={page >= totalPages}
-        className="btn-ghost disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-      >
-        Next
-      </button>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6">
+      {totalRecords != null && (
+        <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+          Showing {showingFrom}–{showingTo} of {totalRecords.toLocaleString()} records
+        </span>
+      )}
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => onPageChange(1)}
+          disabled={page <= 1}
+          className="btn-ghost disabled:opacity-30 disabled:cursor-not-allowed text-xs px-2 py-1.5"
+          title="First page"
+        >
+          «
+        </button>
+        <button
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          className="btn-ghost disabled:opacity-30 disabled:cursor-not-allowed text-sm px-2.5 py-1.5"
+        >
+          ‹ Prev
+        </button>
+        {startPage > 1 && <span className="text-xs text-slate-500 px-1">…</span>}
+        {pageNumbers.map(p => (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={cn(
+              'w-8 h-8 rounded-lg text-xs font-medium transition-all',
+              p === page
+                ? 'bg-amber-500 text-navy-950 shadow-lg shadow-amber-500/20'
+                : 'btn-ghost hover:bg-slate-200 dark:hover:bg-slate-700/50'
+            )}
+          >
+            {p}
+          </button>
+        ))}
+        {endPage < totalPages && <span className="text-xs text-slate-500 px-1">…</span>}
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+          className="btn-ghost disabled:opacity-30 disabled:cursor-not-allowed text-sm px-2.5 py-1.5"
+        >
+          Next ›
+        </button>
+        <button
+          onClick={() => onPageChange(totalPages)}
+          disabled={page >= totalPages}
+          className="btn-ghost disabled:opacity-30 disabled:cursor-not-allowed text-xs px-2 py-1.5"
+          title="Last page"
+        >
+          »
+        </button>
+      </div>
     </div>
   );
 }

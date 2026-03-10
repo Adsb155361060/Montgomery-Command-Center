@@ -2,14 +2,31 @@ import { useState } from 'react';
 import { useFetch } from '@/hooks/useFetch';
 import { useBackgroundAction } from '@/hooks/useBackgroundAction';
 import { youthshield } from '@/lib/api';
-import { LoadingScreen, ErrorDisplay, ModuleHeader, Pagination } from '@/components/shared';
+import { LoadingScreen, ErrorDisplay, ModuleHeader, Pagination, FilterBar, useFilters } from '@/components/shared';
 import { AlertTriangle, RefreshCw, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+
+const PAGE_SIZE = 20;
+
+const FILTER_FIELDS = [
+  { key: 'district', label: 'District', type: 'text' as const, placeholder: 'e.g. 2, 4A...' },
+  { key: 'riskLevel', label: 'Risk Level', type: 'select' as const, options: [
+    { value: 'critical', label: 'Critical (>70)' },
+    { value: 'high', label: 'High (50-70)' },
+    { value: 'medium', label: 'Medium (30-50)' },
+    { value: 'low', label: 'Low (<30)' },
+  ]},
+];
 
 export default function RiskZonesPage() {
   const { isExecutive, isOperational } = useAuth();
   const [page, setPage] = useState(1);
-  const { data, loading, error, refetch } = useFetch(() => youthshield.riskZones({ page, limit: 20 }), [page]);
+  const { filters, setFilter, resetFilters, filterParams } = useFilters({ district: '', riskLevel: '' }, setPage);
+
+  const { data, loading, error, refetch, raw } = useFetch(
+    () => youthshield.riskZones({ page, limit: PAGE_SIZE, ...filterParams }),
+    [page, filterParams]
+  );
   const gen = useBackgroundAction('Generate Risk Zones', youthshield.generateRiskZones);
 
   const handleGenerate = () => { gen.execute(); setTimeout(refetch, 3000); };
@@ -17,8 +34,10 @@ export default function RiskZonesPage() {
   if (loading) return <LoadingScreen message="Loading risk zones..." />;
   if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 
-  const zones = Array.isArray(data) ? data : ((data as any)?.data || []);
-  const meta = (data as any)?.meta;
+  const zones = Array.isArray(data) ? data : [];
+  const pagination = (raw as any)?.pagination;
+  const totalPages = pagination?.totalPages ?? 1;
+  const totalRecords = pagination?.total;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -30,6 +49,8 @@ export default function RiskZonesPage() {
           </button>
         )}
       </ModuleHeader>
+
+      <FilterBar filters={FILTER_FIELDS} values={filters} onChange={setFilter} onReset={resetFilters} />
 
       {gen.data && (
         <div className="glass-card p-4 border-l-4 border-l-emerald-500 bg-emerald-500/5 animate-slide-up">
@@ -69,7 +90,7 @@ export default function RiskZonesPage() {
         </div>
       )}
 
-      {meta && <Pagination page={page} totalPages={meta.pages} onPageChange={setPage} />}
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} totalRecords={totalRecords} pageSize={PAGE_SIZE} />
     </div>
   );
 }

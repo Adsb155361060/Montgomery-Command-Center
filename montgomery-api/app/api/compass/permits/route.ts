@@ -14,9 +14,13 @@ export async function GET(request: Request) {
     const year = searchParams.get("year") ? parseInt(searchParams.get("year")!) : undefined;
 
     const where: Record<string, unknown> = {};
-    if (district) where.districtCouncil = district;
+    if (district) where.districtCouncil = { contains: district, mode: "insensitive" };
     if (projectType) where.projectType = { contains: projectType, mode: "insensitive" };
     if (year) where.year = year;
+    const status = searchParams.get("status") || undefined;
+    if (status) where.permitStatus = { contains: status, mode: "insensitive" };
+    const address = searchParams.get("address") || undefined;
+    if (address) where.physicalAddress = { contains: address, mode: "insensitive" };
 
     const [permits, total] = await Promise.all([
       prisma.constructionPermit.findMany({

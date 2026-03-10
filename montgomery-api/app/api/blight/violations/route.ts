@@ -13,7 +13,11 @@ export async function GET(request: Request) {
 
     const where: Record<string, unknown> = {};
     if (district) where.councilDistrict = { contains: district, mode: "insensitive" };
-    if (status) where.caseStatus = status;
+    if (status) where.caseStatus = { contains: status, mode: "insensitive" };
+    const caseType = searchParams.get("caseType") || undefined;
+    if (caseType) where.caseType = { contains: caseType, mode: "insensitive" };
+    const address = searchParams.get("address") || undefined;
+    if (address) where.address = { contains: address, mode: "insensitive" };
 
     const [violations, total] = await Promise.all([
       prisma.codeViolation.findMany({ where, skip, take: limit, orderBy: { id: "desc" } }),

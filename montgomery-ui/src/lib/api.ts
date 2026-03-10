@@ -109,20 +109,22 @@ export const command = {
 export const sentinel = {
   stats: (district?: string) =>
     get<{ data: import('@/types').SentinelStats }>(`/sentinel/stats${district ? `?district=${district}` : ''}`),
-  incidents: (params?: { page?: number; limit?: number; district?: string; type?: string }) => {
+  incidents: (params?: { page?: number; limit?: number; district?: string; type?: string; category?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.district) q.set('district', params.district);
     if (params?.type) q.set('type', params.type);
+    if (params?.category) q.set('category', params.category);
     return get<{ data: import('@/types').Incident[]; meta: import('@/types').PaginationMeta }>(`/sentinel/incidents?${q.toString()}`);
   },
-  forceMultiplier: (params?: { page?: number; limit?: number; district?: string; shift?: string }) => {
+  forceMultiplier: (params?: { page?: number; limit?: number; district?: string; shift?: string; riskLevel?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.district) q.set('district', params.district);
     if (params?.shift) q.set('shift', params.shift);
+    if (params?.riskLevel) q.set('riskLevel', params.riskLevel);
     return get<{ data: import('@/types').ForceMultiplierZone[]; meta: import('@/types').PaginationMeta }>(`/sentinel/force-multiplier?${q.toString()}`);
   },
   generateForceMultiplier: () =>
@@ -145,11 +147,12 @@ export const sentinel = {
 export const youthshield = {
   stats: () =>
     get<{ data: import('@/types').YouthShieldStats }>('/youthshield/stats'),
-  riskZones: (params?: { page?: number; limit?: number; district?: string }) => {
+  riskZones: (params?: { page?: number; limit?: number; district?: string; riskLevel?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.district) q.set('district', params.district);
+    if (params?.riskLevel) q.set('riskLevel', params.riskLevel);
     return get<{ data: import('@/types').YouthRiskZone[]; meta: import('@/types').PaginationMeta }>(`/youthshield/risk-zones?${q.toString()}`);
   },
   generateRiskZones: () =>
@@ -175,35 +178,43 @@ export const youthshield = {
 export const blight = {
   stats: () =>
     get<{ data: import('@/types').BlightStats }>('/blight/stats'),
-  nuisances: (params?: { page?: number; limit?: number; district?: string }) => {
+  nuisances: (params?: { page?: number; limit?: number; district?: string; type?: string; location?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.district) q.set('district', params.district);
+    if (params?.type) q.set('type', params.type);
+    if (params?.location) q.set('location', params.location);
     return get<{ data: import('@/types').Nuisance[]; meta: import('@/types').PaginationMeta }>(`/blight/nuisances?${q.toString()}`);
   },
-  violations: (params?: { page?: number; limit?: number; district?: string; status?: string }) => {
+  violations: (params?: { page?: number; limit?: number; district?: string; status?: string; caseType?: string; address?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.district) q.set('district', params.district);
     if (params?.status) q.set('status', params.status);
+    if (params?.caseType) q.set('caseType', params.caseType);
+    if (params?.address) q.set('address', params.address);
     return get<{ data: import('@/types').CodeViolation[]; meta: import('@/types').PaginationMeta }>(`/blight/violations?${q.toString()}`);
   },
-  properties: (params?: { page?: number; limit?: number; zoning?: string; district?: number }) => {
+  properties: (params?: { page?: number; limit?: number; zoning?: string; district?: number; neighborhood?: string; address?: string; maintBy?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.zoning) q.set('zoning', params.zoning);
     if (params?.district) q.set('district', String(params.district));
+    if (params?.neighborhood) q.set('neighborhood', params.neighborhood);
+    if (params?.address) q.set('address', params.address);
+    if (params?.maintBy) q.set('maintBy', params.maintBy);
     return get<{ data: import('@/types').CityOwnedProperty[]; meta: import('@/types').PaginationMeta }>(`/blight/properties?${q.toString()}`);
   },
-  scores: (params?: { page?: number; limit?: number; district?: string; minScore?: number }) => {
+  scores: (params?: { page?: number; limit?: number; district?: string; minScore?: number; riskLevel?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.district) q.set('district', params.district);
     if (params?.minScore) q.set('minScore', String(params.minScore));
+    if (params?.riskLevel) q.set('riskLevel', params.riskLevel);
     return get<{ data: import('@/types').BlightScore[]; meta: import('@/types').PaginationMeta }>(`/blight/scores?${q.toString()}`);
   },
   generateScores: () =>
@@ -220,7 +231,7 @@ export const blight = {
 export const compass = {
   stats: () =>
     get<{ data: import('@/types').CompassStats }>('/compass/stats'),
-  permits: (params?: { page?: number; limit?: number; district?: string; projectType?: string; year?: number; status?: string }) => {
+  permits: (params?: { page?: number; limit?: number; district?: string; projectType?: string; year?: number; status?: string; address?: string }) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
@@ -228,6 +239,7 @@ export const compass = {
     if (params?.projectType) q.set('projectType', params.projectType);
     if (params?.year) q.set('year', String(params.year));
     if (params?.status) q.set('status', params.status);
+    if (params?.address) q.set('address', params.address);
     return get<{ data: import('@/types').ConstructionPermit[]; meta: import('@/types').PaginationMeta }>(`/compass/permits?${q.toString()}`);
   },
   impact: () =>

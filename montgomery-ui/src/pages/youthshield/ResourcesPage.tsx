@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useFetch } from '@/hooks/useFetch';
 import { youthshield } from '@/lib/api';
-import { LoadingScreen, ErrorDisplay, ModuleHeader, Pagination } from '@/components/shared';
-import { Building2, School, TreePine, BookOpen, Baby, Filter } from 'lucide-react';
+import { LoadingScreen, ErrorDisplay, ModuleHeader, FilterBar, useFilters } from '@/components/shared';
+import { Building2, School, TreePine, BookOpen, Baby } from 'lucide-react';
 
 const typeIcons: Record<string, any> = {
   school: School,
@@ -34,9 +34,15 @@ function flattenResources(raw: any): any[] {
   return out;
 }
 
+const FILTER_FIELDS = [
+  { key: 'search', label: 'Name / Address', type: 'text' as const, placeholder: 'Search by name or address...' },
+];
+
 export default function ResourcesPage() {
   const [type, setType] = useState('');
   const [page, setPage] = useState(1);
+  const { filters, setFilter, resetFilters } = useFilters({ search: '' }, setPage);
+
   // Don't send type filter to API — flatten locally instead (API uses different type keys: "center" vs "community_center")
   const { data, loading, error, refetch } = useFetch(() => youthshield.resources({ page, limit: 200 }), [page]);
 
@@ -44,7 +50,19 @@ export default function ResourcesPage() {
   if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 
   const allResources = flattenResources(data);
-  const resources = type ? allResources.filter((r: any) => r.type === type) : allResources;
+
+  const resources = useMemo(() => {
+    let filtered = type ? allResources.filter((r: any) => r.type === type) : allResources;
+    const search = filters.search.toLowerCase().trim();
+    if (search) {
+      filtered = filtered.filter((r: any) =>
+        (r.name || '').toLowerCase().includes(search) ||
+        (r.address || '').toLowerCase().includes(search)
+      );
+    }
+    return filtered;
+  }, [allResources, type, filters.search]);
+
   const summary = (data as any)?.summary;
 
   const types = ['school', 'community_center', 'park', 'library', 'daycare'];
@@ -54,6 +72,8 @@ export default function ResourcesPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <ModuleHeader title="Youth Resources" subtitle="Schools, community centers, parks, libraries & daycares serving Montgomery youth" accentColor="bg-youthshield-500" icon={<Building2 className="w-6 h-6" />} />
+
+      <FilterBar filters={FILTER_FIELDS} values={filters} onChange={setFilter} onReset={resetFilters} />
 
       <div className="flex gap-2 flex-wrap">
         <button onClick={() => setType('')} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all border ${!type ? 'text-white bg-youthshield-500/20 border-youthshield-500/40' : 'text-slate-400 bg-slate-800/50 border-slate-700/50 hover:border-slate-600'}`}>
@@ -82,7 +102,7 @@ export default function ResourcesPage() {
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-white truncate group-hover:text-youthshield-300 transition-colors">{r.name}</h3>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-youthshield-300 transition-colors">{r.name}</h3>
                   <p className="text-xs text-slate-500 capitalize">{r.type?.replace('_', ' ')}</p>
                 </div>
               </div>

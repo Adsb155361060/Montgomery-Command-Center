@@ -14,7 +14,11 @@ export async function GET(request: Request) {
     const district = parseDistrict(searchParams);
 
     const where: Record<string, unknown> = {};
-    if (district) where.district = district;
+    if (district) where.district = { contains: district, mode: "insensitive" };
+    const type = searchParams.get("type") || undefined;
+    if (type) where.type = { contains: type, mode: "insensitive" };
+    const location = searchParams.get("location") || undefined;
+    if (location) where.location = { contains: location, mode: "insensitive" };
 
     const [nuisances, total] = await Promise.all([
       prisma.nuisance.findMany({ where, skip, take: limit, orderBy: { id: "desc" } }),

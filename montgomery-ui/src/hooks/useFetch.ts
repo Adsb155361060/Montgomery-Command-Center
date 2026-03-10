@@ -5,10 +5,13 @@ interface UseFetchResult<T> {
   loading: boolean;
   error: string | null;
   refetch: () => void;
+  /** Full raw response from API (includes pagination, meta, etc.) */
+  raw: Record<string, unknown> | null;
 }
 
-export function useFetch<T>(fetcher: () => Promise<{ data: T }>, deps: unknown[] = []): UseFetchResult<T> {
+export function useFetch<T>(fetcher: () => Promise<{ data: T; [key: string]: unknown }>, deps: unknown[] = []): UseFetchResult<T> {
   const [data, setData] = useState<T | null>(null);
+  const [raw, setRaw] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,6 +21,7 @@ export function useFetch<T>(fetcher: () => Promise<{ data: T }>, deps: unknown[]
     try {
       const res = await fetcher();
       setData(res.data);
+      setRaw(res as Record<string, unknown>);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -28,7 +32,7 @@ export function useFetch<T>(fetcher: () => Promise<{ data: T }>, deps: unknown[]
 
   useEffect(() => { execute(); }, [execute]);
 
-  return { data, loading, error, refetch: execute };
+  return { data, loading, error, refetch: execute, raw };
 }
 
 export function useAction<T, A extends unknown[]>(

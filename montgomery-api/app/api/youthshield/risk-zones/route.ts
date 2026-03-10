@@ -15,7 +15,9 @@ export async function GET(request: Request) {
     const district = searchParams.get("district") || undefined;
 
     const where: Record<string, unknown> = {};
-    if (district) where.district = district;
+    if (district) where.district = { contains: district, mode: "insensitive" };
+    const riskLevel = searchParams.get("riskLevel") || undefined;
+    if (riskLevel) where.riskLevel = { equals: riskLevel, mode: "insensitive" };
 
     const [zones, total] = await Promise.all([
       prisma.youthRiskZone.findMany({ where, skip, take: limit, orderBy: { riskScore: "desc" } }),

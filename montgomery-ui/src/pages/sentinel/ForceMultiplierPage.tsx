@@ -2,19 +2,37 @@ import { useState } from 'react';
 import { useFetch } from '@/hooks/useFetch';
 import { useBackgroundAction } from '@/hooks/useBackgroundAction';
 import { sentinel } from '@/lib/api';
-import { LoadingScreen, ErrorDisplay, ModuleHeader, Pagination } from '@/components/shared';
+import { LoadingScreen, ErrorDisplay, ModuleHeader, Pagination, FilterBar, useFilters } from '@/components/shared';
 import { Markdown } from '@/components/shared/Markdown';
 import { Target, RefreshCw, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 
+const PAGE_SIZE = 20;
+
+const FILTER_FIELDS = [
+  { key: 'district', label: 'District', type: 'text' as const, placeholder: 'e.g. 2, 4A...' },
+  { key: 'shift', label: 'Shift', type: 'select' as const, options: [
+    { value: 'day', label: 'Day Shift' },
+    { value: 'evening', label: 'Evening Shift' },
+    { value: 'night', label: 'Night Shift' },
+  ]},
+  { key: 'riskLevel', label: 'Risk Level', type: 'select' as const, options: [
+    { value: 'critical', label: 'Critical (>70)' },
+    { value: 'high', label: 'High (50-70)' },
+    { value: 'medium', label: 'Medium (30-50)' },
+    { value: 'low', label: 'Low (<30)' },
+  ]},
+];
+
 export default function ForceMultiplierPage() {
   const { isExecutive, isOperational } = useAuth();
   const [page, setPage] = useState(1);
-  const [shift, setShift] = useState('');
-  const { data, loading, error, refetch } = useFetch(
-    () => sentinel.forceMultiplier({ page, limit: 20, shift: shift || undefined }),
-    [page, shift]
+  const { filters, setFilter, resetFilters, filterParams } = useFilters({ district: '', shift: '', riskLevel: '' }, setPage);
+
+  const { data, loading, error, refetch, raw } = useFetch(
+    () => sentinel.forceMultiplier({ page, limit: PAGE_SIZE, ...filterParams }),
+    [page, filterParams]
   );
   const gen = useBackgroundAction('Recalculate Force Multiplier', sentinel.generateForceMultiplier);
 
@@ -26,8 +44,10 @@ export default function ForceMultiplierPage() {
   if (loading) return <LoadingScreen message="Loading force multiplier zones..." />;
   if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 
-  const zones = Array.isArray(data) ? data : ((data as any)?.data || []);
-  const meta = (data as any)?.meta;
+  const zones = Array.isArray(data) ? data : [];
+  const pagination = (raw as any)?.pagination;
+  const totalPages = pagination?.totalPages ?? 1;
+  const totalRecords = pagination?.total;
 
   const chartData = zones.slice(0, 15).map((z: any, i: number) => ({
     zone: `Zone ${i + 1}`,
@@ -43,12 +63,6 @@ export default function ForceMultiplierPage() {
         accentColor="bg-sentinel-500"
         icon={<Target className="w-6 h-6" />}
       >
-        <select value={shift} onChange={e => { setShift(e.target.value); setPage(1); }} className="input-field w-auto text-sm">
-          <option value="">All Shifts</option>
-          <option value="day">Day Shift</option>
-          <option value="evening">Evening Shift</option>
-          <option value="night">Night Shift</option>
-        </select>
         {(isExecutive || isOperational) && (
           <button onClick={handleGenerate} disabled={gen.loading} className="btn-primary flex items-center gap-2 text-sm">
             {gen.loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
@@ -56,6 +70,8 @@ export default function ForceMultiplierPage() {
           </button>
         )}
       </ModuleHeader>
+
+      <FilterBar filters={FILTER_FIELDS} values={filters} onChange={setFilter} onReset={resetFilters} />
 
       {gen.data && (
         <div className="glass-card p-4 border-l-4 border-l-emerald-500 bg-emerald-500/5 animate-slide-up">
@@ -120,7 +136,7 @@ export default function ForceMultiplierPage() {
         </div>
       )}
 
-      {meta && <Pagination page={page} totalPages={meta.pages} onPageChange={setPage} />}
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} totalRecords={totalRecords} pageSize={PAGE_SIZE} />
     </div>
   );
 }

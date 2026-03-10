@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const category = searchParams.get("category") || undefined;
 
     const where: Record<string, unknown> = {};
-    if (district) where.district = district;
+    if (district) where.district = { startsWith: district, mode: "insensitive" };
     if (type) where.incidentType = { contains: type, mode: "insensitive" };
     if (category) where.incidentCategory = { contains: category, mode: "insensitive" };
 
