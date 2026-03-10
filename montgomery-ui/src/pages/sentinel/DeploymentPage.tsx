@@ -24,8 +24,13 @@ export default function DeploymentPage() {
   const result = raw?.deploymentPlan ?? raw?.deployment_plan ?? raw?.deployment ?? raw?.optimizedShift ?? raw?.optimized_shift ?? raw?.plan ?? raw?.data?.deploymentPlan ?? raw?.data?.deployment_plan ?? raw?.data ?? raw;
   const hasResult = result && typeof result === 'object' && Object.keys(result).length > 0;
 
-  /* ─── Resilient extraction (camelCase + snake_case) ─── */
-  const totalCoverage = Number(pick(result, 'totalCoverage', 'total_coverage', 'coverage', 'overallCoverage', 'overall_coverage', 'coveragePercent', 'coverage_percent') || 0);
+  /* ─── Resilient extraction (camelCase + snake_case + nested) ─── */
+  const ov = result?.overview ?? result?.summary ?? result?.stats ?? {};
+  const totalCoverage = Number(
+    pick(result, 'totalCoverage', 'total_coverage', 'coverage', 'overallCoverage', 'overall_coverage', 'coveragePercent', 'coverage_percent')
+    ?? pick(ov, 'totalCoverage', 'total_coverage', 'coverage', 'overallCoverage', 'overall_coverage', 'coveragePercent', 'coverage_percent', 'totalCoverage%', 'total_coverage_%')
+    ?? 0
+  );
   const assignments: any[] = (() => {
     const a = pick(result, 'assignments', 'patrols', 'patrolAssignments', 'patrol_assignments', 'officers', 'units', 'deployments', 'officer_assignments', 'patrol_units');
     return Array.isArray(a) ? a : [];
@@ -45,6 +50,7 @@ export default function DeploymentPage() {
     'gapZones', 'gap_zones', 'gaps', 'coverageGaps', 'coverage_gaps', 'uncoveredZones', 'uncovered_zones', 'gapAreas', 'gap_areas',
     'recommendations', 'suggestions', 'notes', 'optimizationNotes', 'optimization_notes',
     'deploymentPlan', 'deployment_plan', 'deployment', 'optimizedShift', 'optimized_shift', 'plan', 'data', 'modelUsed', 'model_used',
+    'overview', 'summary', 'stats',
   ]);
 
   return (
