@@ -56,16 +56,92 @@ interface NormalizedROI {
 function normalizeROI(raw: any): NormalizedROI | null {
   if (!raw) return null;
 
-  // Find the analysis object regardless of key name
-  const a =
-    raw?.roi_analysis ??
-    raw?.recruitment_roi_analysis ??
-    raw?.data?.roi_analysis ??
-    raw?.data?.recruitment_roi_analysis ??
-    raw;
+  // Unwrap nested wrappers
+  const d = raw?.data ?? raw;
+  if (!d || typeof d !== 'object') return null;
 
-  // If it still looks like a wrapper, bail
-  if (!a || (typeof a !== 'object')) return null;
+  /* ══════════════════════════════════════════════════════
+   * Format C (current API): top-level object with
+   *   investment_details, projected_incident_reduction,
+   *   roi_analysis (sub-section), executive_justification
+   * ══════════════════════════════════════════════════════ */
+  const inv = d.investment_details;
+  const pir = d.projected_incident_reduction;
+  if (inv || pir) {
+    const officersAdded = inv?.num_officers_added ?? inv?.officers_added ?? '—';
+    const shiftImpacted = d.shift ?? d.shift_impacted ?? '—';
+
+    // Costs
+    const costs: { label: string; value: number }[] = [];
+    let totalFirstYear = 0;
+    let totalSubsequent = 0;
+    if (inv) {
+      if (inv.officer_salary_annual) costs.push({ label: 'Annual Salary Per Officer', value: inv.officer_salary_annual });
+      if (inv.training_cost_per_officer) costs.push({ label: 'Training Cost Per Officer', value: inv.training_cost_per_officer });
+      totalFirstYear = inv.total_investment_year_1 ?? inv.total_first_year_investment ?? 0;
+      totalSubsequent = inv.total_recurring_investment_annual ?? inv.total_subsequent_annual_investment ?? 0;
+      if (totalFirstYear) costs.push({ label: 'Total First Year Investment', value: totalFirstYear });
+      if (totalSubsequent) costs.push({ label: 'Subsequent Annual Investment', value: totalSubsequent });
+    }
+
+    // Reductions — projected_incident_reduction is { crime_type: { count, total_savings } }
+    const reductions: { type: string; count: number; savings: number }[] = [];
+    if (pir && typeof pir === 'object') {
+      for (const [key, val] of Object.entries(pir)) {
+        const v = val as any;
+        if (v && typeof v === 'object' && ('count' in v || 'total_savings' in v)) {
+          reductions.push({
+            type: prettyCrimeType(key),
+            count: v.count ?? v.projected_reduction_count ?? 0,
+            savings: v.total_savings ?? v.savings ?? 0,
+          });
+        }
+      }
+    }
+
+    const totalAnnualSavings = d.total_projected_annual_savings ?? reductions.reduce((s, r) => s + r.savings, 0);
+
+    // ROI — roi_analysis: { year_1: {...}, subsequent_years_annual: {...} }
+    const ra = d.roi_analysis ?? d.roi_calculation ?? {};
+    const y1 = ra.year_1 ?? ra.first_year ?? {};
+    const sub = ra.subsequent_years_annual ?? {};
+    const firstYearNetBenefit = y1.net_benefit ?? null;
+    const firstYearROI = y1.roi_percentage ?? null;
+    const subsequentNetBenefit = sub.net_benefit ?? null;
+    const subsequentROI = sub.roi_percentage ?? null;
+
+    const justification = d.executive_justification ?? d.justification ?? '';
+
+    return {
+      officersAdded,
+      shiftImpacted,
+      costs,
+      totalFirstYearInvestment: totalFirstYear,
+      totalSubsequentAnnualInvestment: totalSubsequent,
+      reductions,
+      totalAnnualSavings,
+      firstYearNetBenefit,
+      firstYearROI,
+      subsequentNetBenefit,
+      subsequentROI,
+      justification,
+      strategy: '',
+      targetZone: null,
+      incidentBreakdown: [],
+      totalIncidentsPrevented: null,
+      reductionPct: '',
+    };
+  }
+
+  /* ══════════════════════════════════════════════════════
+   * Format A/B (legacy): roi_analysis or recruitment_roi_analysis
+   * as the main analysis wrapper
+   * ══════════════════════════════════════════════════════ */
+  const a =
+    d?.recruitment_roi_analysis ??
+    d;
+
+  if (!a || typeof a !== 'object') return null;
 
   /* ── Officers ── */
   const officersAdded = a.officer_count_added ?? a.officers_added ?? '—';
@@ -103,7 +179,6 @@ function normalizeROI(raw: any): NormalizedROI | null {
   /* ── Incident Reductions ── */
   const reductions: { type: string; count: number; savings: number }[] = [];
 
-  // Format A: incident_reduction_projection_annual[]
   const irpa = a.incident_reduction_projection_annual;
   if (Array.isArray(irpa)) {
     irpa.forEach((r: any) => {
@@ -115,7 +190,6 @@ function normalizeROI(raw: any): NormalizedROI | null {
     });
   }
 
-  // Format B: estimated_incidents_prevented_by_type + estimated_cost_savings_annually
   const pi = a.projected_impact;
   if (pi) {
     const byType = pi.estimated_incidents_prevented_by_type ?? {};
@@ -133,13 +207,11 @@ function normalizeROI(raw: any): NormalizedROI | null {
     }
   }
 
-  /* ── Total savings ── */
   const totalAnnualSavings =
     a.total_projected_annual_savings ??
     pi?.estimated_cost_savings_annually?.total_annual_cost_savings ??
     reductions.reduce((s, r) => s + r.savings, 0);
 
-  /* ── ROI ── */
   const rc = a.roi_calculation;
   const rv = a.return_on_investment;
 
@@ -148,16 +220,13 @@ function normalizeROI(raw: any): NormalizedROI | null {
   const subsequentNetBenefit = rc?.subsequent_years_annual?.net_benefit ?? null;
   const subsequentROI = rc?.subsequent_years_annual?.roi_percentage ?? null;
 
-  /* ── Justification ── */
   const justification = a.executive_justification ?? a.justification ?? '';
 
-  /* ── Strategy / Target zone (Format B) ── */
   const strategy = pi?.strategy ?? '';
   const targetZone = pi?.target_zone ?? null;
   const reductionPct = pi?.assumed_incident_reduction_percentage ?? '';
   const totalIncidentsPrevented = pi?.estimated_incidents_prevented_annually ?? null;
 
-  /* ── Incident breakdown assumptions ── */
   const incidentBreakdown: { label: string; value: string }[] = [];
   const iba = pi?.incident_breakdown_assumptions;
   if (iba) {

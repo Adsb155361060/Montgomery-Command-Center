@@ -21,30 +21,30 @@ export default function DeploymentPage() {
 
   const raw = deploy.data as any;
   // Unwrap — AI might nest under deploymentPlan, optimizedShift, data, etc.
-  const result = raw?.deploymentPlan || raw?.deployment || raw?.optimizedShift || raw?.plan || raw?.data?.deploymentPlan || raw?.data || raw;
+  const result = raw?.deploymentPlan ?? raw?.deployment_plan ?? raw?.deployment ?? raw?.optimizedShift ?? raw?.optimized_shift ?? raw?.plan ?? raw?.data?.deploymentPlan ?? raw?.data?.deployment_plan ?? raw?.data ?? raw;
   const hasResult = result && typeof result === 'object' && Object.keys(result).length > 0;
 
-  /* ─── Resilient extraction ─── */
-  const totalCoverage = Number(pick(result, 'totalCoverage', 'coverage', 'overallCoverage', 'coveragePercent') || 0);
+  /* ─── Resilient extraction (camelCase + snake_case) ─── */
+  const totalCoverage = Number(pick(result, 'totalCoverage', 'total_coverage', 'coverage', 'overallCoverage', 'overall_coverage', 'coveragePercent', 'coverage_percent') || 0);
   const assignments: any[] = (() => {
-    const a = pick(result, 'assignments', 'patrols', 'patrolAssignments', 'officers', 'units', 'deployments');
+    const a = pick(result, 'assignments', 'patrols', 'patrolAssignments', 'patrol_assignments', 'officers', 'units', 'deployments', 'officer_assignments', 'patrol_units');
     return Array.isArray(a) ? a : [];
   })();
   const gapZones: any[] = (() => {
-    const g = pick(result, 'gapZones', 'gaps', 'coverageGaps', 'uncoveredZones', 'gapAreas');
+    const g = pick(result, 'gapZones', 'gap_zones', 'gaps', 'coverageGaps', 'coverage_gaps', 'uncoveredZones', 'uncovered_zones', 'gapAreas', 'gap_areas');
     return Array.isArray(g) ? g : [];
   })();
   const recs: any[] = (() => {
-    const r = pick(result, 'recommendations', 'suggestions', 'notes', 'optimizationNotes');
+    const r = pick(result, 'recommendations', 'suggestions', 'notes', 'optimizationNotes', 'optimization_notes');
     return Array.isArray(r) ? r : r ? [r] : [];
   })();
 
   const handledKeys = new Set([
-    'totalCoverage', 'coverage', 'overallCoverage', 'coveragePercent',
-    'assignments', 'patrols', 'patrolAssignments', 'officers', 'units', 'deployments',
-    'gapZones', 'gaps', 'coverageGaps', 'uncoveredZones', 'gapAreas',
-    'recommendations', 'suggestions', 'notes', 'optimizationNotes',
-    'deploymentPlan', 'deployment', 'optimizedShift', 'plan', 'data', 'modelUsed',
+    'totalCoverage', 'total_coverage', 'coverage', 'overallCoverage', 'overall_coverage', 'coveragePercent', 'coverage_percent',
+    'assignments', 'patrols', 'patrolAssignments', 'patrol_assignments', 'officers', 'units', 'deployments', 'officer_assignments', 'patrol_units',
+    'gapZones', 'gap_zones', 'gaps', 'coverageGaps', 'coverage_gaps', 'uncoveredZones', 'uncovered_zones', 'gapAreas', 'gap_areas',
+    'recommendations', 'suggestions', 'notes', 'optimizationNotes', 'optimization_notes',
+    'deploymentPlan', 'deployment_plan', 'deployment', 'optimizedShift', 'optimized_shift', 'plan', 'data', 'modelUsed', 'model_used',
   ]);
 
   return (
@@ -126,20 +126,20 @@ export default function DeploymentPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {assignments.map((a: any, i: number) => {
-                  const officerId = pick(a, 'officerId', 'officer', 'officerName', 'id', 'unit', 'unitId', 'name');
-                  const zone = pick(a, 'zone', 'area', 'sector', 'beat', 'location', 'region');
-                  const district = pick(a, 'district', 'districtNumber', 'districtId');
-                  const route = pick(a, 'patrolRoute', 'route', 'patrol', 'description', 'routeDescription', 'details');
-                  const coverage = Number(pick(a, 'estimatedCoverage', 'coverage', 'coveragePercent', 'coverageScore') || 0);
-                  const priority = pick(a, 'priority', 'level', 'urgency', 'riskLevel');
+                  const officerId = pick(a, 'officerId', 'officer_id', 'officer', 'officerName', 'officer_name', 'id', 'unit', 'unitId', 'unit_id', 'name');
+                  const zone = pick(a, 'zone', 'area', 'sector', 'beat', 'location', 'region', 'h3_zone', 'h3Zone', 'patrol_zone');
+                  const district = pick(a, 'district', 'districtNumber', 'district_number', 'districtId', 'district_id');
+                  const route = pick(a, 'patrolRoute', 'patrol_route', 'route', 'patrol', 'description', 'routeDescription', 'route_description', 'details');
+                  const coverage = Number(pick(a, 'estimatedCoverage', 'estimated_coverage', 'coverage', 'coveragePercent', 'coverage_percent', 'coverageScore', 'coverage_score') || 0);
+                  const priority = pick(a, 'priority', 'level', 'urgency', 'riskLevel', 'risk_level');
                   const priorityStr = String(priority || 'normal').toLowerCase();
                   const aHandled = new Set([
-                    'officerId', 'officer', 'officerName', 'id', 'unit', 'unitId', 'name',
-                    'zone', 'area', 'sector', 'beat', 'location', 'region',
-                    'district', 'districtNumber', 'districtId',
-                    'patrolRoute', 'route', 'patrol', 'description', 'routeDescription', 'details',
-                    'estimatedCoverage', 'coverage', 'coveragePercent', 'coverageScore',
-                    'priority', 'level', 'urgency', 'riskLevel',
+                    'officerId', 'officer_id', 'officer', 'officerName', 'officer_name', 'id', 'unit', 'unitId', 'unit_id', 'name',
+                    'zone', 'area', 'sector', 'beat', 'location', 'region', 'h3_zone', 'h3Zone', 'patrol_zone',
+                    'district', 'districtNumber', 'district_number', 'districtId', 'district_id',
+                    'patrolRoute', 'patrol_route', 'route', 'patrol', 'description', 'routeDescription', 'route_description', 'details',
+                    'estimatedCoverage', 'estimated_coverage', 'coverage', 'coveragePercent', 'coverage_percent', 'coverageScore', 'coverage_score',
+                    'priority', 'level', 'urgency', 'riskLevel', 'risk_level',
                   ]);
                   const extra = Object.entries(a).filter(([k, v]) => !aHandled.has(k) && v != null && v !== '');
                   return (
