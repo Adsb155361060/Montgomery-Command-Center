@@ -41,3 +41,21 @@ prisma/migrations/dev.db
 # Cache
 .cache/
 .turbo/
+
+# Unrelated project files — keep only montgomery-api/ and montgomery-ui/
+.playwright-mcp/
+montgomery-command-center/
+montgomery-frontend/
+montgomery_data/
+*.docx
+*.pdf
+*.png
+AGENTS.md
+datasets_summary.json
+hackathon_details.md
+Montgomery_Command_Center_*.md
+SLIDE_DECK.md
+VIDEO_SCRIPT.md
+NoteGPT_TRANSCRIPT_*
+delhi_rewa.pdf
+image*.png
