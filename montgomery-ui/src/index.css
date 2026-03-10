@@ -244,6 +244,20 @@ html:not(.dark) .recharts-cartesian-grid line {
   stroke: #e2e8f0 !important;
 }
 
+/* Tour highlight for sidebar sections */
+[data-tour].tour-highlight {
+  position: relative;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 12px;
+  outline: 2px solid rgba(99, 102, 241, 0.4);
+  outline-offset: 2px;
+  animation: tourPulse 2s ease-in-out infinite;
+}
+@keyframes tourPulse {
+  0%, 100% { outline-color: rgba(99, 102, 241, 0.4); }
+  50% { outline-color: rgba(99, 102, 241, 0.7); }
+}
+
 /* Toast slide-in animation */
 @keyframes slideInRight {
   from { transform: translateX(100%); opacity: 0; }

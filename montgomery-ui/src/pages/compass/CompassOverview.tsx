@@ -15,6 +15,21 @@ export default function CompassOverview() {
   const s = data as any;
   const COLORS = ['#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
 
+  // API returns nested: { construction: { totalPermits, totalEstimatedCost, byType }, economy: { activeBusinessLicenses }, majorProjects: {...} }
+  const totalPermits = s?.construction?.totalPermits ?? s?.totalPermits ?? 0;
+  const totalInvestment = s?.construction?.totalEstimatedCost ?? s?.economicImpact ?? 0;
+  const businessLicenses = s?.economy?.activeBusinessLicenses ?? s?.activeBusinessLicenses ?? 0;
+  const majorProjects = s?.majorProjects ? Object.keys(s.majorProjects).length : (s?.activeProjects ?? 0);
+  const permitsByType = s?.construction?.byType ?? s?.permitsByType ?? null;
+  const majorProjectData = s?.majorProjects
+    ? Object.entries(s.majorProjects).map(([key, val]: [string, any]) => ({
+        name: val.status ? key.replace(/([A-Z])/g, ' $1').replace(/^./, (c: string) => c.toUpperCase()) : key,
+        investment: val.investment ?? '',
+        jobs: val.permanentJobs ?? 0,
+        status: val.status ?? 'Unknown',
+      }))
+    : null;
+
   const quickActions = [
     { title: 'Impact Dashboard', desc: 'Real-time fiscal impact analysis', link: '/compass/impact', color: 'border-compass-500/30 hover:border-compass-500/50' },
     { title: 'Scenario Modeler', desc: 'What-if economic scenarios', link: '/compass/scenario', color: 'border-blight-500/30 hover:border-blight-500/50' },
@@ -32,18 +47,18 @@ export default function CompassOverview() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Permits" value={formatNumber(s?.totalPermits ?? s?.permits ?? 0)} icon={<FileText className="w-4 h-4" />} color="text-compass-400" />
-        <StatCard label="Economic Impact" value={formatCurrency(s?.economicImpact ?? s?.totalImpact ?? 0)} icon={<DollarSign className="w-4 h-4" />} color="text-emerald-400" />
-        <StatCard label="Active Projects" value={formatNumber(s?.activeProjects ?? 0)} icon={<BarChart3 className="w-4 h-4" />} color="text-blight-400" />
-        <StatCard label="Growth Rate" value={`${s?.growthRate ?? 0}%`} icon={<TrendingUp className="w-4 h-4" />} color="text-amber-400" />
+        <StatCard label="Total Permits" value={formatNumber(totalPermits)} icon={<FileText className="w-4 h-4" />} color="text-compass-400" />
+        <StatCard label="Total Investment" value={formatCurrency(totalInvestment)} icon={<DollarSign className="w-4 h-4" />} color="text-emerald-400" />
+        <StatCard label="Major Projects" value={formatNumber(majorProjects)} icon={<BarChart3 className="w-4 h-4" />} color="text-blight-400" />
+        <StatCard label="Business Licenses" value={formatNumber(businessLicenses)} icon={<TrendingUp className="w-4 h-4" />} color="text-amber-400" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {s?.permitsByType && (
+        {permitsByType && Array.isArray(permitsByType) && permitsByType.length > 0 && (
           <div className="glass-card p-6">
             <h3 className="text-sm font-semibold text-slate-300 mb-4">Permits by Type</h3>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={Object.entries(s.permitsByType).map(([k, v]) => ({ type: k, count: v }))}>
+              <BarChart data={permitsByType}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="type" tick={{ fill: '#94a3b8', fontSize: 10 }} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
@@ -54,16 +69,19 @@ export default function CompassOverview() {
           </div>
         )}
 
-        {s?.investmentByDistrict && (
+        {majorProjectData && majorProjectData.length > 0 && (
           <div className="glass-card p-6">
-            <h3 className="text-sm font-semibold text-slate-300 mb-4">Investment Distribution</h3>
+            <h3 className="text-sm font-semibold text-slate-300 mb-4">Major Projects — Permanent Jobs</h3>
             <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={Object.entries(s.investmentByDistrict).map(([name, value]) => ({ name: `D${name}`, value }))} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {Object.keys(s.investmentByDistrict).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 8 }} formatter={(v: any) => formatCurrency(v as number)} />
-              </PieChart>
+              <BarChart data={majorProjectData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <YAxis dataKey="name" type="category" width={130} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 8 }} formatter={(v: any) => `${v} jobs`} />
+                <Bar dataKey="jobs" radius={[0, 4, 4, 0]}>
+                  {majorProjectData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         )}

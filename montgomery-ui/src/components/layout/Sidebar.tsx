@@ -112,7 +112,7 @@ export function Sidebar() {
           if (!visibleItems.length) return null;
 
           return (
-            <div key={group.label} className="mb-4">
+            <div key={group.label} className="mb-4" data-tour={group.label}>
               {!collapsed && (
                 <p className={cn('text-[10px] font-semibold uppercase tracking-widest px-3 mb-1.5', group.color || 'text-slate-600')}>
                   {group.label}

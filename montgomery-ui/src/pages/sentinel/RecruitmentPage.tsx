@@ -7,10 +7,30 @@ import { DollarSign, Zap, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 
-/** Safely extract a number from an AI-generated field */
+/** Safely extract a number from an AI-generated field (handles "$1,234", "1.5x", etc.) */
 function safeNum(v: unknown, fallback = 0): number {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : fallback;
+  if (typeof v === 'string') {
+    const cleaned = v.replace(/[$,%x]/gi, '').replace(/,/g, '').trim();
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  return fallback;
+}
+
+/** Normalize AI response to expected ROI shape — handles different field names/casing */
+function normalizeROI(raw: any): any {
+  if (!raw) return null;
+  // Unwrap nested data if needed
+  const r = raw?.data ?? raw?.result ?? raw?.analysis ?? raw;
+  return {
+    annualSavings: safeNum(r.annualSavings ?? r.annual_savings ?? r.totalSavings ?? r.total_savings),
+    annualCost: safeNum(r.annualCost ?? r.annual_cost ?? r.totalCost ?? r.total_cost),
+    roi: safeNum(r.roi ?? r.returnOnInvestment ?? r.return_on_investment ?? r.roiMultiplier),
+    projectedIncidentReductionPct: safeNum(r.projectedIncidentReductionPct ?? r.projected_incident_reduction_pct ?? r.incidentReductionPct ?? r.incidentReduction ?? r.incident_reduction_pct),
+    justification: r.justification ?? r.analysis ?? r.summary ?? r.explanation ?? r.narrative ?? '',
+    breakdownByCategory: r.breakdownByCategory ?? r.breakdown_by_category ?? r.breakdown ?? r.categories ?? [],
+  };
 }
 
 export default function RecruitmentPage() {
@@ -26,9 +46,7 @@ export default function RecruitmentPage() {
     });
   };
 
-  const raw = calc.data as any;
-  // Normalise AI response: handle both flat object and wrapped { data: ... } shapes
-  const result = raw ? (raw.annualSavings !== undefined ? raw : raw.data ?? raw.result ?? raw) : null;
+  const result = normalizeROI(calc.data);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -82,34 +100,34 @@ export default function RecruitmentPage() {
         </div>
       )}
 
-      {result && (
+      {result && (result.annualSavings > 0 || result.annualCost > 0 || result.roi > 0) && (
         <div className="space-y-6 animate-slide-up">
           {/* Summary Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="glass-card p-5 text-center">
-              <p className="stat-value text-2xl text-emerald-400">{formatCurrency(safeNum(result.annualSavings))}</p>
+              <p className="stat-value text-2xl text-emerald-400">{formatCurrency(result.annualSavings)}</p>
               <p className="stat-label">Annual Savings</p>
             </div>
             <div className="glass-card p-5 text-center">
-              <p className="stat-value text-2xl text-red-400">{formatCurrency(safeNum(result.annualCost))}</p>
+              <p className="stat-value text-2xl text-red-400">{formatCurrency(result.annualCost)}</p>
               <p className="stat-label">Annual Cost</p>
             </div>
             <div className="glass-card p-5 text-center">
-              <p className="stat-value text-2xl text-amber-400">{safeNum(result.roi).toFixed(1)}x</p>
+              <p className="stat-value text-2xl text-amber-400">{result.roi.toFixed(1)}x</p>
               <p className="stat-label">ROI</p>
             </div>
             <div className="glass-card p-5 text-center">
-              <p className="stat-value text-2xl text-blight-400">-{safeNum(result.projectedIncidentReductionPct).toFixed(1)}%</p>
+              <p className="stat-value text-2xl text-blight-400">-{result.projectedIncidentReductionPct.toFixed(1)}%</p>
               <p className="stat-label">Incident Reduction</p>
             </div>
           </div>
 
           {/* ROI Visual */}
-          <div className={`glass-card p-6 border-l-4 ${safeNum(result.roi) > 1 ? 'border-l-emerald-500 bg-emerald-500/5' : 'border-l-red-500 bg-red-500/5'}`}>
+          <div className={`glass-card p-6 border-l-4 ${result.roi > 1 ? 'border-l-emerald-500 bg-emerald-500/5' : 'border-l-red-500 bg-red-500/5'}`}>
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className={`w-5 h-5 ${safeNum(result.roi) > 1 ? 'text-emerald-400' : 'text-red-400'}`} />
+              <TrendingUp className={`w-5 h-5 ${result.roi > 1 ? 'text-emerald-400' : 'text-red-400'}`} />
               <h3 className="font-semibold text-white">
-                {safeNum(result.roi) > 1 ? 'Positive Return on Investment' : 'Investment Analysis'}
+                {result.roi > 1 ? 'Positive Return on Investment' : 'Investment Analysis'}
               </h3>
             </div>
             <Markdown size="sm">{result.justification || 'ROI analysis based on Montgomery incident data and officer cost projections.'}</Markdown>
