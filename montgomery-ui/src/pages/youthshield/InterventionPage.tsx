@@ -53,19 +53,18 @@ export default function InterventionPage() {
     pick(d, 'implementationSteps', 'steps', 'implementationPlan', 'plan', 'phases', 'actionItems', 'actions', 'milestones') || [];
   const stepsArr = Array.isArray(steps) ? steps : [];
 
-  // Interventions array (from API route type)
-  const interventions: any[] = pick(d, 'interventions', 'interventionRouting', 'assignedInterventions', 'programs', 'recommendations', 'strategies') || [];
+  // Interventions array (from API route type) — includes routing_plan format
+  const interventions: any[] = pick(d, 'interventions', 'interventionRouting', 'assignedInterventions', 'routing_plan', 'routingPlan', 'programs', 'recommendations', 'strategies') || [];
   const interventionsArr = Array.isArray(interventions) ? interventions : [];
 
   // ─── Derived stats from actual data ───
-  // The API returns { interventions[], coverageGaps[], coordinationNotes } — stats are derived
   const estReduction = Number(pick(d, 'estimatedReduction', 'reductionPercent', 'reduction', 'estimatedImpact', 'impactPercent', 'crimeReduction')) || 0;
 
-  // Cost: try top-level, then sum from interventions, then count programs
-  let annualCost = Number(pick(d, 'annualCost', 'cost', 'totalCost', 'estimatedCost', 'budget', 'annualBudget')) || 0;
+  // Cost: try top-level, then sum from interventions
+  let annualCost = Number(pick(d, 'annualCost', 'cost', 'totalCost', 'estimatedCost', 'budget', 'annualBudget', 'annual_cost', 'total_cost', 'estimated_cost')) || 0;
   if (!annualCost && interventionsArr.length > 0) {
     annualCost = interventionsArr.reduce((sum: number, it: any) => {
-      const c = Number(pick(it, 'estimatedCost', 'cost', 'budget', 'amount'));
+      const c = Number(pick(it, 'estimatedCost', 'estimated_cost', 'cost', 'budget', 'amount'));
       return sum + (isFinite(c) ? c : 0);
     }, 0);
   }
@@ -73,15 +72,25 @@ export default function InterventionPage() {
   const youthReached = Number(pick(d, 'youthReached', 'estimatedYouth', 'participants', 'targetYouth', 'youthServed', 'totalParticipants')) || 0;
   const timelineVal = pick(d, 'timelineMonths', 'timeline', 'duration', 'implementationTimeline', 'months');
 
-  // Compute from interventions array
+  // Compute from interventions array — handle both flat and routing_plan (nested programs[]) format
   const highUrgencyCount = interventionsArr.filter((it: any) => {
-    const u = String(pick(it, 'urgency', 'priority', 'level') || '').toLowerCase();
+    const u = String(pick(it, 'urgency', 'priority', 'level', 'risk_level', 'riskLevel') || '').toLowerCase();
     return u.includes('high') || u.includes('critical') || u.includes('urgent') || u.includes('immediate');
   }).length;
-  const uniqueProviders = [...new Set(interventionsArr.map((it: any) =>
-    String(pick(it, 'provider', 'organization', 'agency', 'partner') || '')).filter(Boolean))];
+  // Providers: check top-level provider AND nested programs[].provider
+  const allProviders: string[] = [];
+  interventionsArr.forEach((it: any) => {
+    const p = pick(it, 'provider', 'organization', 'agency', 'partner');
+    if (p) allProviders.push(String(p));
+    const progs = it.programs ?? it.activities ?? [];
+    if (Array.isArray(progs)) progs.forEach((pr: any) => {
+      const pp = pr?.provider ?? pr?.organization;
+      if (pp) allProviders.push(String(pp));
+    });
+  });
+  const uniqueProviders = [...new Set(allProviders.filter(Boolean))];
   const uniqueTimeSlots = [...new Set(interventionsArr.map((it: any) =>
-    String(pick(it, 'timeSlot', 'timeSlots', 'schedule', 'time') || '')).filter(Boolean))];
+    String(pick(it, 'timeSlot', 'time_slot', 'timeSlots', 'schedule', 'time') || '')).filter(Boolean))];
 
   // Stat values: use top-level fields if present, otherwise derive from interventions array
   const statInterventions = interventionsArr.length || stepsArr.length;
@@ -111,7 +120,7 @@ export default function InterventionPage() {
     'youthReached', 'estimatedYouth', 'participants', 'targetYouth', 'youthServed', 'totalParticipants',
     'timelineMonths', 'timeline', 'duration', 'implementationTimeline', 'months',
     'implementationSteps', 'steps', 'implementationPlan', 'plan', 'phases', 'actionItems', 'actions', 'milestones',
-    'interventions', 'interventionRouting', 'assignedInterventions', 'programs', 'recommendations', 'strategies',
+    'interventions', 'interventionRouting', 'assignedInterventions', 'routing_plan', 'routingPlan', 'programs', 'recommendations', 'strategies',
     'breakdown', 'costBreakdown', 'budgetBreakdown', 'costs',
     'justification', 'narrative', 'rationale', 'summary', 'analysis', 'explanation',
     'coverageGaps', 'gaps', 'riskAreas', 'challenges',
@@ -231,15 +240,17 @@ export default function InterventionPage() {
                           </div>
                         );
                       }
-                      const title = pick(item, 'name', 'title', 'program', 'type', 'intervention', 'recommendedIntervention') || `Program ${i + 1}`;
-                      const desc = pick(item, 'description', 'text', 'details', 'rationale', 'summary');
+                      const title = pick(item, 'name', 'title', 'program', 'type', 'intervention', 'recommendedIntervention', 'deployment_point', 'deploymentPoint') || `Program ${i + 1}`;
+                      const desc = pick(item, 'description', 'text', 'details', 'rationale', 'summary', 'notes');
                       const target = pick(item, 'targetPopulation', 'target', 'audience', 'participants');
-                      const cost = pick(item, 'estimatedCost', 'cost', 'budget', 'amount');
+                      const cost = pick(item, 'estimatedCost', 'estimated_cost', 'cost', 'budget', 'amount');
                       const provider = pick(item, 'provider', 'organization', 'agency', 'partner');
-                      const timeSlot = pick(item, 'timeSlot', 'timeSlots', 'schedule', 'time');
-                      const urgency = pick(item, 'urgency', 'priority', 'level');
-                      const zone = pick(item, 'zone', 'zoneH3', 'h3Index', 'area', 'location', 'deploymentPoint');
-                      const itemHandled = new Set(['name', 'title', 'program', 'type', 'intervention', 'recommendedIntervention', 'description', 'text', 'details', 'rationale', 'summary', 'targetPopulation', 'target', 'audience', 'participants', 'estimatedCost', 'cost', 'budget', 'amount', 'provider', 'organization', 'agency', 'partner', 'timeSlot', 'timeSlots', 'schedule', 'time', 'urgency', 'priority', 'level', 'zone', 'zoneH3', 'h3Index', 'area', 'location', 'deploymentPoint', 'riskScore']);
+                      const timeSlot = pick(item, 'timeSlot', 'time_slot', 'timeSlots', 'schedule', 'time');
+                      const urgency = pick(item, 'urgency', 'priority', 'level', 'risk_level', 'riskLevel');
+                      const zone = pick(item, 'zone', 'zoneH3', 'h3Index', 'h3_zone', 'area', 'location', 'deploymentPoint', 'deployment_point');
+                      // Nested programs array (routing_plan format)
+                      const nestedPrograms: any[] = Array.isArray(item.programs) ? item.programs : (Array.isArray(item.activities) ? item.activities : []);
+                      const itemHandled = new Set(['name', 'title', 'program', 'type', 'intervention', 'recommendedIntervention', 'deployment_point', 'deploymentPoint', 'description', 'text', 'details', 'rationale', 'summary', 'notes', 'targetPopulation', 'target', 'audience', 'participants', 'estimatedCost', 'estimated_cost', 'cost', 'budget', 'amount', 'provider', 'organization', 'agency', 'partner', 'timeSlot', 'time_slot', 'timeSlots', 'schedule', 'time', 'urgency', 'priority', 'level', 'risk_level', 'riskLevel', 'zone', 'zoneH3', 'h3Index', 'h3_zone', 'area', 'location', 'riskScore', 'programs', 'activities', 'latitude', 'longitude']);
                       const extra = Object.entries(item).filter(([k, v]) => !itemHandled.has(k) && v != null && v !== '');
                       return (
                         <div key={i} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
@@ -260,6 +271,20 @@ export default function InterventionPage() {
                                 {timeSlot && <span className="text-xs text-slate-500"><span className="font-medium">Time:</span> {timeSlot}</span>}
                                 {target && <span className="text-xs text-youthshield-400/70"><span className="font-medium">Target:</span> {sanitizeH3(String(target))}</span>}
                               </div>
+                              {/* Nested programs (routing_plan format) */}
+                              {nestedPrograms.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Programs ({nestedPrograms.length})</p>
+                                  {nestedPrograms.map((pr: any, j: number) => (
+                                    <div key={j} className="flex items-start gap-2 pl-2 border-l-2 border-youthshield-500/30">
+                                      <div className="min-w-0">
+                                        <span className="text-xs font-medium text-youthshield-400">{pr.provider ?? pr.organization ?? `Provider ${j + 1}`}</span>
+                                        {(pr.activity ?? pr.description) && <p className="text-xs text-slate-400 mt-0.5">{pr.activity ?? pr.description}</p>}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                               {extra.length > 0 && (
                                 <div className="mt-2 space-y-0.5">
                                   {extra.map(([k, v]) => (
