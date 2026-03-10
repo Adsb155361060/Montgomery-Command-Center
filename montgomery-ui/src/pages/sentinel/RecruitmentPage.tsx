@@ -6,7 +6,7 @@ import { ExportButton } from '@/lib/export';
 import {
   DollarSign, Zap, TrendingUp, TrendingDown, Users, Clock,
   Shield, BadgeDollarSign, ChevronRight, Target, PiggyBank,
-  BarChart3,
+  BarChart3, Crosshair, MapPin,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -14,11 +14,177 @@ import { formatCurrency, cn } from '@/lib/utils';
 /* ── colour palette for chart bars ───────────────────── */
 const BAR_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
 
-/* ── Extract nested roi_analysis from API response ─── */
-function extractROI(raw: any) {
+/* ────────────────────────────────────────────────────────
+ * Normalize ANY API response shape into a single unified
+ * structure. Handles both known formats:
+ *
+ * Format A (multi-officer):
+ *   { roi_analysis: { officer_count_added, cost_projection,
+ *     incident_reduction_projection_annual[], roi_calculation, ... } }
+ *
+ * Format B (single-officer):
+ *   { recruitment_roi_analysis: { officers_added,
+ *     cost_of_new_officer_first_year, projected_impact,
+ *     return_on_investment, ... } }
+ * ──────────────────────────────────────────────────────── */
+function prettyCrimeType(key: string): string {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+interface NormalizedROI {
+  officersAdded: number | string;
+  shiftImpacted: string;
+  costs: { label: string; value: number }[];
+  totalFirstYearInvestment: number;
+  totalSubsequentAnnualInvestment: number;
+  reductions: { type: string; count: number; savings: number }[];
+  totalAnnualSavings: number;
+  firstYearNetBenefit: number | null;
+  firstYearROI: number | null;
+  subsequentNetBenefit: number | null;
+  subsequentROI: number | null;
+  justification: string;
+  strategy: string;
+  targetZone: any;
+  incidentBreakdown: { label: string; value: string }[];
+  totalIncidentsPrevented: number | null;
+  reductionPct: string;
+}
+
+function normalizeROI(raw: any): NormalizedROI | null {
   if (!raw) return null;
-  // API returns { roi_analysis: { ... } } inside data
-  return raw?.roi_analysis ?? raw?.data?.roi_analysis ?? raw;
+
+  // Find the analysis object regardless of key name
+  const a =
+    raw?.roi_analysis ??
+    raw?.recruitment_roi_analysis ??
+    raw?.data?.roi_analysis ??
+    raw?.data?.recruitment_roi_analysis ??
+    raw;
+
+  // If it still looks like a wrapper, bail
+  if (!a || (typeof a !== 'object')) return null;
+
+  /* ── Officers ── */
+  const officersAdded = a.officer_count_added ?? a.officers_added ?? '—';
+
+  /* ── Shift ── */
+  const shiftImpacted = a.shift_impacted ?? a.projected_impact?.target_zone?.shift ?? '—';
+
+  /* ── Costs ── */
+  const costs: { label: string; value: number }[] = [];
+  let totalFirstYear = 0;
+  let totalSubsequent = 0;
+
+  // Format A: cost_projection
+  const cp = a.cost_projection;
+  if (cp) {
+    if (cp.officer_annual_cost_per) costs.push({ label: 'Annual Cost Per Officer', value: cp.officer_annual_cost_per });
+    if (cp.training_cost_per_officer) costs.push({ label: 'Training Cost Per Officer', value: cp.training_cost_per_officer });
+    if (cp.total_annual_personnel_cost) costs.push({ label: 'Total Annual Personnel Cost', value: cp.total_annual_personnel_cost });
+    if (cp.total_initial_training_cost) costs.push({ label: 'Total Initial Training Cost', value: cp.total_initial_training_cost });
+    totalFirstYear = cp.total_first_year_investment ?? 0;
+    totalSubsequent = cp.total_subsequent_annual_investment ?? 0;
+    if (totalFirstYear) costs.push({ label: 'Total First Year Investment', value: totalFirstYear });
+    if (totalSubsequent) costs.push({ label: 'Subsequent Annual Investment', value: totalSubsequent });
+  }
+
+  // Format B: cost_of_new_officer_first_year
+  const cf = a.cost_of_new_officer_first_year;
+  if (cf) {
+    if (cf.annual_salary_and_benefits) costs.push({ label: 'Annual Salary & Benefits', value: cf.annual_salary_and_benefits });
+    if (cf.training_cost) costs.push({ label: 'Training Cost', value: cf.training_cost });
+    totalFirstYear = cf.total_first_year_cost ?? 0;
+    if (totalFirstYear) costs.push({ label: 'Total First Year Cost', value: totalFirstYear });
+  }
+
+  /* ── Incident Reductions ── */
+  const reductions: { type: string; count: number; savings: number }[] = [];
+
+  // Format A: incident_reduction_projection_annual[]
+  const irpa = a.incident_reduction_projection_annual;
+  if (Array.isArray(irpa)) {
+    irpa.forEach((r: any) => {
+      reductions.push({
+        type: r.type ?? 'Unknown',
+        count: r.projected_reduction_count ?? 0,
+        savings: r.total_savings ?? 0,
+      });
+    });
+  }
+
+  // Format B: estimated_incidents_prevented_by_type + estimated_cost_savings_annually
+  const pi = a.projected_impact;
+  if (pi) {
+    const byType = pi.estimated_incidents_prevented_by_type ?? {};
+    const bySavings = pi.estimated_cost_savings_annually ?? {};
+    const typeKeys = Object.keys(byType);
+    if (typeKeys.length > 0) {
+      typeKeys.forEach(key => {
+        const savingsKey = `${key}_savings`;
+        reductions.push({
+          type: prettyCrimeType(key),
+          count: byType[key] ?? 0,
+          savings: bySavings[savingsKey] ?? 0,
+        });
+      });
+    }
+  }
+
+  /* ── Total savings ── */
+  const totalAnnualSavings =
+    a.total_projected_annual_savings ??
+    pi?.estimated_cost_savings_annually?.total_annual_cost_savings ??
+    reductions.reduce((s, r) => s + r.savings, 0);
+
+  /* ── ROI ── */
+  const rc = a.roi_calculation;
+  const rv = a.return_on_investment;
+
+  const firstYearNetBenefit = rc?.first_year?.net_benefit ?? rv?.first_year_net_benefit ?? null;
+  const firstYearROI = rc?.first_year?.roi_percentage ?? rv?.first_year_roi_percentage ?? null;
+  const subsequentNetBenefit = rc?.subsequent_years_annual?.net_benefit ?? null;
+  const subsequentROI = rc?.subsequent_years_annual?.roi_percentage ?? null;
+
+  /* ── Justification ── */
+  const justification = a.executive_justification ?? a.justification ?? '';
+
+  /* ── Strategy / Target zone (Format B) ── */
+  const strategy = pi?.strategy ?? '';
+  const targetZone = pi?.target_zone ?? null;
+  const reductionPct = pi?.assumed_incident_reduction_percentage ?? '';
+  const totalIncidentsPrevented = pi?.estimated_incidents_prevented_annually ?? null;
+
+  /* ── Incident breakdown assumptions ── */
+  const incidentBreakdown: { label: string; value: string }[] = [];
+  const iba = pi?.incident_breakdown_assumptions;
+  if (iba) {
+    Object.entries(iba).forEach(([k, v]) => {
+      incidentBreakdown.push({ label: prettyCrimeType(k.replace('_percentage', '')), value: String(v) });
+    });
+  }
+
+  return {
+    officersAdded,
+    shiftImpacted,
+    costs,
+    totalFirstYearInvestment: totalFirstYear,
+    totalSubsequentAnnualInvestment: totalSubsequent,
+    reductions,
+    totalAnnualSavings,
+    firstYearNetBenefit,
+    firstYearROI,
+    subsequentNetBenefit,
+    subsequentROI,
+    justification,
+    strategy,
+    targetZone,
+    incidentBreakdown,
+    totalIncidentsPrevented,
+    reductionPct,
+  };
 }
 
 export default function RecruitmentPage() {
@@ -34,26 +200,40 @@ export default function RecruitmentPage() {
     });
   };
 
-  const roi = extractROI(calc.data);
-
-  /* Derived values */
-  const cost = roi?.cost_projection;
-  const reductions = roi?.incident_reduction_projection_annual ?? [];
-  const roiCalc = roi?.roi_calculation;
-  const totalSavings = roi?.total_projected_annual_savings ?? 0;
-  const justification = roi?.executive_justification ?? '';
+  const roi = normalizeROI(calc.data);
 
   /* Chart data */
-  const chartData = reductions.map((r: any) => ({
+  const chartData = roi?.reductions.map(r => ({
     type: r.type,
-    savings: r.total_savings ?? 0,
-    reductions: r.projected_reduction_count ?? 0,
-    costPerIncident: r.cost_per_incident ?? 0,
-  }));
+    savings: r.savings,
+    count: r.count,
+  })) ?? [];
 
-  /* Export content for markdown / text */
+  /* Export content */
   const exportContent = roi
-    ? `# Recruitment ROI Analysis\n\n## Overview\n- Officers Added: ${roi.officer_count_added}\n- Shifts Impacted: ${roi.shift_impacted}\n\n## Cost Projection\n- Annual Cost Per Officer: ${formatCurrency(cost?.officer_annual_cost_per)}\n- Training Cost Per Officer: ${formatCurrency(cost?.training_cost_per_officer)}\n- Total First Year Investment: ${formatCurrency(cost?.total_first_year_investment)}\n- Subsequent Annual Investment: ${formatCurrency(cost?.total_subsequent_annual_investment)}\n\n## Incident Reduction Projections\n${reductions.map((r: any) => `- ${r.type}: ${r.projected_reduction_count} incidents reduced → ${formatCurrency(r.total_savings)} saved`).join('\n')}\n\n## ROI Calculation\n- First Year ROI: ${roiCalc?.first_year?.roi_percentage?.toFixed(1)}% (Net Benefit: ${formatCurrency(roiCalc?.first_year?.net_benefit)})\n- Subsequent Years ROI: ${roiCalc?.subsequent_years_annual?.roi_percentage?.toFixed(1)}% (Net Benefit: ${formatCurrency(roiCalc?.subsequent_years_annual?.net_benefit)})\n\n## Executive Justification\n${justification}`
+    ? [
+        '# Recruitment ROI Analysis',
+        '',
+        '## Overview',
+        `- Officers Added: ${roi.officersAdded}`,
+        `- Shifts Impacted: ${roi.shiftImpacted}`,
+        roi.strategy ? `- Strategy: ${roi.strategy}` : '',
+        roi.reductionPct ? `- Assumed Incident Reduction: ${roi.reductionPct}` : '',
+        '',
+        '## Costs',
+        ...roi.costs.map(c => `- ${c.label}: ${formatCurrency(c.value)}`),
+        '',
+        '## Incident Reduction Projections',
+        ...roi.reductions.map(r => `- ${r.type}: ${r.count} incidents prevented → ${formatCurrency(r.savings)} saved`),
+        `- **Total Annual Savings: ${formatCurrency(roi.totalAnnualSavings)}**`,
+        '',
+        '## ROI',
+        roi.firstYearROI != null ? `- First Year ROI: ${roi.firstYearROI.toFixed(1)}% (Net Benefit: ${formatCurrency(roi.firstYearNetBenefit ?? 0)})` : '',
+        roi.subsequentROI != null ? `- Subsequent Years ROI: ${roi.subsequentROI.toFixed(1)}% (Net Benefit: ${formatCurrency(roi.subsequentNetBenefit ?? 0)})` : '',
+        '',
+        '## Executive Justification',
+        roi.justification,
+      ].filter(Boolean).join('\n')
     : '';
 
   return (
@@ -121,48 +301,107 @@ export default function RecruitmentPage() {
             <KPICard
               icon={<Users className="w-5 h-5" />}
               label="Officers Added"
-              value={String(roi.officer_count_added ?? '—')}
+              value={String(roi.officersAdded)}
               accent="text-blue-400"
             />
             <KPICard
               icon={<Clock className="w-5 h-5" />}
               label="Shifts Impacted"
-              value={roi.shift_impacted ?? '—'}
+              value={roi.shiftImpacted}
               accent="text-indigo-400"
             />
             <KPICard
               icon={<PiggyBank className="w-5 h-5" />}
               label="Annual Projected Savings"
-              value={formatCurrency(totalSavings)}
+              value={formatCurrency(roi.totalAnnualSavings)}
               accent="text-emerald-400"
             />
             <KPICard
               icon={<TrendingUp className="w-5 h-5" />}
               label="First Year ROI"
-              value={`${roiCalc?.first_year?.roi_percentage?.toFixed(1) ?? '—'}%`}
+              value={roi.firstYearROI != null ? `${roi.firstYearROI.toFixed(1)}%` : '—'}
               accent="text-amber-400"
             />
           </div>
 
+          {/* ── Strategy & Target Zone (Format B) ── */}
+          {(roi.strategy || roi.targetZone) && (
+            <div className="glass-card p-6">
+              <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                <Crosshair className="w-5 h-5 text-sentinel-400" /> Deployment Strategy
+              </h3>
+              {roi.strategy && (
+                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{roi.strategy}</p>
+              )}
+              {roi.targetZone && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {roi.targetZone.district && (
+                    <InfoPill icon={<MapPin className="w-3.5 h-3.5" />} label="District" value={roi.targetZone.district} />
+                  )}
+                  {roi.targetZone.shift && (
+                    <InfoPill icon={<Clock className="w-3.5 h-3.5" />} label="Shift" value={roi.targetZone.shift} />
+                  )}
+                  {roi.targetZone.h3_index && (
+                    <InfoPill icon={<MapPin className="w-3.5 h-3.5" />} label="H3 Zone" value={roi.targetZone.h3_index.slice(0, 12) + '…'} />
+                  )}
+                  {roi.targetZone.annual_incidents_in_zone != null && (
+                    <InfoPill icon={<Shield className="w-3.5 h-3.5" />} label="Annual Incidents" value={String(roi.targetZone.annual_incidents_in_zone)} />
+                  )}
+                </div>
+              )}
+              {(roi.reductionPct || roi.totalIncidentsPrevented != null) && (
+                <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50">
+                  {roi.reductionPct && (
+                    <div className="text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Assumed Reduction: </span>
+                      <span className="font-semibold text-sentinel-400">{roi.reductionPct}</span>
+                    </div>
+                  )}
+                  {roi.totalIncidentsPrevented != null && (
+                    <div className="text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Est. Incidents Prevented: </span>
+                      <span className="font-semibold text-emerald-400">{roi.totalIncidentsPrevented}/year</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Incident breakdown assumptions */}
+              {roi.incidentBreakdown.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Incident Breakdown Assumptions</p>
+                  <div className="flex flex-wrap gap-2">
+                    {roi.incidentBreakdown.map((b, i) => (
+                      <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/30">
+                        {b.label}: <span className="font-semibold">{b.value}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Cost Projection ── */}
-          {cost && (
+          {roi.costs.length > 0 && (
             <div className="glass-card p-6">
               <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                 <BadgeDollarSign className="w-5 h-5 text-red-400" /> Cost Projection
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <CostRow label="Annual Cost Per Officer" value={cost.officer_annual_cost_per} />
-                <CostRow label="Training Cost Per Officer" value={cost.training_cost_per_officer} />
-                <CostRow label="Total Annual Personnel Cost" value={cost.total_annual_personnel_cost} />
-                <CostRow label="Total Initial Training Cost" value={cost.total_initial_training_cost} />
-                <CostRow label="Total First Year Investment" value={cost.total_first_year_investment} highlight />
-                <CostRow label="Subsequent Annual Investment" value={cost.total_subsequent_annual_investment} />
+                {roi.costs.map((c, i) => (
+                  <CostRow
+                    key={i}
+                    label={c.label}
+                    value={c.value}
+                    highlight={c.label.toLowerCase().includes('total first year')}
+                  />
+                ))}
               </div>
             </div>
           )}
 
           {/* ── Incident Reduction Projections Table ── */}
-          {reductions.length > 0 && (
+          {roi.reductions.length > 0 && (
             <div className="glass-card p-6">
               <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-emerald-400" /> Incident Reduction Projections (Annual)
@@ -172,13 +411,12 @@ export default function RecruitmentPage() {
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-700/60">
                       <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Crime Type</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Projected Reduction</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cost Per Incident</th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Incidents Prevented</th>
                       <th className="text-right py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Savings</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                    {reductions.map((r: any, i: number) => (
+                    {roi.reductions.map((r, i) => (
                       <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="py-3 px-4 font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
                           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
@@ -187,18 +425,17 @@ export default function RecruitmentPage() {
                         <td className="py-3 px-4 text-right tabular-nums text-slate-600 dark:text-slate-300">
                           <span className="inline-flex items-center gap-1">
                             <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
-                            {r.projected_reduction_count}
+                            {r.count}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right tabular-nums text-slate-600 dark:text-slate-300">{formatCurrency(r.cost_per_incident)}</td>
-                        <td className="py-3 px-4 text-right tabular-nums font-semibold text-emerald-500">{formatCurrency(r.total_savings)}</td>
+                        <td className="py-3 px-4 text-right tabular-nums font-semibold text-emerald-500">{formatCurrency(r.savings)}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-slate-200 dark:border-slate-600">
-                      <td className="py-3 px-4 font-bold text-slate-800 dark:text-white" colSpan={3}>Total Annual Projected Savings</td>
-                      <td className="py-3 px-4 text-right font-bold text-lg text-emerald-400">{formatCurrency(totalSavings)}</td>
+                      <td className="py-3 px-4 font-bold text-slate-800 dark:text-white" colSpan={2}>Total Annual Projected Savings</td>
+                      <td className="py-3 px-4 text-right font-bold text-lg text-emerald-400">{formatCurrency(roi.totalAnnualSavings)}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -240,34 +477,40 @@ export default function RecruitmentPage() {
             </div>
           )}
 
-          {/* ── ROI Calculation Comparison ── */}
-          {roiCalc && (
+          {/* ── ROI Calculation ── */}
+          {(roi.firstYearROI != null || roi.subsequentROI != null) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ROICard
-                title="First Year"
-                netBenefit={roiCalc.first_year?.net_benefit}
-                roiPct={roiCalc.first_year?.roi_percentage}
-                investment={cost?.total_first_year_investment}
-                color="amber"
-              />
-              <ROICard
-                title="Subsequent Years (Annual)"
-                netBenefit={roiCalc.subsequent_years_annual?.net_benefit}
-                roiPct={roiCalc.subsequent_years_annual?.roi_percentage}
-                investment={cost?.total_subsequent_annual_investment}
-                color="emerald"
-              />
+              {roi.firstYearROI != null && (
+                <ROICard
+                  title="First Year"
+                  netBenefit={roi.firstYearNetBenefit}
+                  roiPct={roi.firstYearROI}
+                  investment={roi.totalFirstYearInvestment || undefined}
+                  totalSavings={roi.totalAnnualSavings}
+                  color="amber"
+                />
+              )}
+              {roi.subsequentROI != null && (
+                <ROICard
+                  title="Subsequent Years (Annual)"
+                  netBenefit={roi.subsequentNetBenefit}
+                  roiPct={roi.subsequentROI}
+                  investment={roi.totalSubsequentAnnualInvestment || undefined}
+                  totalSavings={roi.totalAnnualSavings}
+                  color="emerald"
+                />
+              )}
             </div>
           )}
 
           {/* ── Executive Justification ── */}
-          {justification && (
+          {roi.justification && (
             <div className="glass-card p-6 border-l-4 border-l-sentinel-500 bg-sentinel-500/5">
               <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
                 <Target className="w-5 h-5 text-sentinel-400" /> Executive Justification
               </h3>
               <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-line">
-                {justification}
+                {roi.justification}
               </p>
             </div>
           )}
@@ -291,6 +534,18 @@ function KPICard({ icon, label, value, accent }: { icon: React.ReactNode; label:
   );
 }
 
+function InfoPill({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/30">
+      <span className="text-sentinel-400">{icon}</span>
+      <div>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</p>
+        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{value}</p>
+      </div>
+    </div>
+  );
+}
+
 function CostRow({ label, value, highlight }: { label: string; value?: number; highlight?: boolean }) {
   return (
     <div className={cn(
@@ -308,9 +563,9 @@ function CostRow({ label, value, highlight }: { label: string; value?: number; h
 }
 
 function ROICard({
-  title, netBenefit, roiPct, investment, color,
+  title, netBenefit, roiPct, investment, totalSavings, color,
 }: {
-  title: string; netBenefit?: number; roiPct?: number; investment?: number; color: 'amber' | 'emerald';
+  title: string; netBenefit?: number | null; roiPct?: number | null; investment?: number; totalSavings: number; color: 'amber' | 'emerald';
 }) {
   const isPositive = (netBenefit ?? 0) > 0;
   return (
@@ -328,7 +583,7 @@ function ROICard({
         )}
         <div className="flex justify-between text-sm">
           <span className="text-slate-500 dark:text-slate-400">Projected Savings</span>
-          <span className="font-medium text-emerald-400">{formatCurrency((netBenefit ?? 0) + (investment ?? 0))}</span>
+          <span className="font-medium text-emerald-400">{formatCurrency(totalSavings)}</span>
         </div>
         <div className="border-t border-slate-200 dark:border-slate-700/50 pt-3 flex justify-between items-end">
           <div>
