@@ -86,7 +86,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <span className={`badge text-[10px] ${d.sentinel.status === 'compliant' ? 'badge-success' : 'badge-danger'}`}>
+              <span className={`badge text-[10px] ${d.sentinel.status?.toUpperCase() === 'COMPLIANT' ? 'badge-success' : 'badge-danger'}`}>
                 SB 298: {d.sentinel.status}
               </span>
               <span className="text-[11px] text-slate-600">{d.sentinel.criticalZones} critical zones</span>

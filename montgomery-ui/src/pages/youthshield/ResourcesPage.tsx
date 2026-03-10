@@ -20,40 +20,52 @@ const typeColors: Record<string, string> = {
   daycare: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
 };
 
+/** API returns grouped { schools[], communityCenters[], parks[], libraries[], daycares[] }
+ *  Flatten into a single array with a consistent `type` field using `resourceType`. */
+function flattenResources(raw: any): any[] {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== 'object') return [];
+  const out: any[] = [];
+  for (const item of (raw.schools || [])) out.push({ ...item, type: item.resourceType || 'school', lat: item.latitude, lng: item.longitude });
+  for (const item of (raw.communityCenters || [])) out.push({ ...item, type: item.resourceType || 'community_center', lat: item.latitude, lng: item.longitude });
+  for (const item of (raw.parks || [])) out.push({ ...item, type: item.resourceType || 'park', lat: item.latitude, lng: item.longitude });
+  for (const item of (raw.libraries || [])) out.push({ ...item, type: item.resourceType || 'library', lat: item.latitude, lng: item.longitude });
+  for (const item of (raw.daycares || [])) out.push({ ...item, type: item.resourceType || 'daycare', lat: item.latitude, lng: item.longitude });
+  return out;
+}
+
 export default function ResourcesPage() {
   const [type, setType] = useState('');
   const [page, setPage] = useState(1);
-  const { data, loading, error, refetch } = useFetch(() => youthshield.resources({ type: type || undefined, page, limit: 30 }), [type, page]);
+  // Don't send type filter to API — flatten locally instead (API uses different type keys: "center" vs "community_center")
+  const { data, loading, error, refetch } = useFetch(() => youthshield.resources({ page, limit: 200 }), [page]);
 
   if (loading) return <LoadingScreen message="Loading youth resources..." />;
   if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 
-  const resources = Array.isArray(data) ? data : (data as any)?.data || [];
-  const meta = (data as any)?.meta;
+  const allResources = flattenResources(data);
+  const resources = type ? allResources.filter((r: any) => r.type === type) : allResources;
+  const summary = (data as any)?.summary;
 
   const types = ['school', 'community_center', 'park', 'library', 'daycare'];
+  const typeCounts: Record<string, number> = {};
+  for (const t of types) typeCounts[t] = allResources.filter((r: any) => r.type === t).length;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <ModuleHeader title="Youth Resources" subtitle="Schools, community centers, parks, libraries & daycares serving Montgomery youth" accentColor="bg-youthshield-500" icon={<Building2 className="w-6 h-6" />}>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <select value={type} onChange={e => { setType(e.target.value); setPage(1); }} className="input-field w-48 text-sm">
-            <option value="">All Types</option>
-            {types.map(t => <option key={t} value={t}>{t.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>)}
-          </select>
-        </div>
-      </ModuleHeader>
+      <ModuleHeader title="Youth Resources" subtitle="Schools, community centers, parks, libraries & daycares serving Montgomery youth" accentColor="bg-youthshield-500" icon={<Building2 className="w-6 h-6" />} />
 
       <div className="flex gap-2 flex-wrap">
+        <button onClick={() => setType('')} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all border ${!type ? 'text-white bg-youthshield-500/20 border-youthshield-500/40' : 'text-slate-400 bg-slate-800/50 border-slate-700/50 hover:border-slate-600'}`}>
+          All ({allResources.length})
+        </button>
         {types.map(t => {
           const Icon = typeIcons[t] || Building2;
-          const count = resources.filter((r: any) => r.type === t).length;
           return (
-            <button key={t} onClick={() => { setType(type === t ? '' : t); setPage(1); }} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all border ${type === t ? typeColors[t] : 'text-slate-400 bg-slate-800/50 border-slate-700/50 hover:border-slate-600'}`}>
+            <button key={t} onClick={() => setType(type === t ? '' : t)} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all border ${type === t ? typeColors[t] : 'text-slate-400 bg-slate-800/50 border-slate-700/50 hover:border-slate-600'}`}>
               <Icon className="w-3.5 h-3.5" />
               {t.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
-              {count > 0 && <span className="bg-slate-700/50 px-1.5 py-0.5 rounded-md">{count}</span>}
+              <span className="bg-slate-700/50 px-1.5 py-0.5 rounded-md">{typeCounts[t]}</span>
             </button>
           );
         })}
@@ -64,7 +76,7 @@ export default function ResourcesPage() {
           const Icon = typeIcons[r.type] || Building2;
           const colorClass = typeColors[r.type] || 'text-slate-400 bg-slate-500/10 border-slate-500/20';
           return (
-            <div key={r.id} className="glass-card p-5 hover:border-youthshield-500/20 transition-all duration-300 group">
+            <div key={`${r.type}-${r.id}`} className="glass-card p-5 hover:border-youthshield-500/20 transition-all duration-300 group">
               <div className="flex items-start gap-3 mb-3">
                 <div className={`p-2 rounded-lg border ${colorClass}`}>
                   <Icon className="w-4 h-4" />
@@ -74,8 +86,11 @@ export default function ResourcesPage() {
                   <p className="text-xs text-slate-500 capitalize">{r.type?.replace('_', ' ')}</p>
                 </div>
               </div>
-              {r.address && <p className="text-xs text-slate-400 mb-2">📍 {r.address}</p>}
-              {r.phone && <p className="text-xs text-slate-400 mb-2">📞 {r.phone}</p>}
+              {r.address && <p className="text-xs text-slate-400 mb-1">📍 {r.address}</p>}
+              {r.phone && <p className="text-xs text-slate-400 mb-1">📞 {r.phone}</p>}
+              {r.hours && <p className="text-xs text-slate-400 mb-1">🕐 {r.hours} ({r.days})</p>}
+              {r.enrollment && <p className="text-xs text-slate-400 mb-1">👥 Enrollment: {r.enrollment}</p>}
+              {r.level && <p className="text-xs text-slate-400 mb-1">📚 {r.level}</p>}
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700/30">
                 {r.district && <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">District {r.district}</span>}
                 {(r.lat && r.lng) && <span className="text-[10px] text-slate-600 font-mono">{Number(r.lat).toFixed(3)}, {Number(r.lng).toFixed(3)}</span>}
@@ -88,11 +103,9 @@ export default function ResourcesPage() {
       {!resources.length && (
         <div className="glass-card p-12 text-center">
           <Building2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400">No resources found{type ? ` for type "${type}"` : ''}</p>
+          <p className="text-slate-400">No resources found{type ? ` for type "${type.replace('_', ' ')}"` : ''}</p>
         </div>
       )}
-
-      {meta && <Pagination page={page} totalPages={meta.pages} onPageChange={setPage} />}
     </div>
   );
 }
