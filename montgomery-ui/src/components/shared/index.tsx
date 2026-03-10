@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Loader2, AlertTriangle, RefreshCw, Filter, X, Search } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 // ── Filter Bar ──
@@ -110,8 +110,12 @@ export function useFilters(
   }, [initialFilters, setPage]);
 
   // Build params object from filters (only include non-empty values)
-  const filterParams = Object.fromEntries(
-    Object.entries(filters).filter(([, v]) => v !== '')
+  // Memoize so the object reference is stable across renders
+  const filterParamsKey = JSON.stringify(filters);
+  const filterParams = useMemo(
+    () => Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== '')),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filterParamsKey]
   );
 
   return { filters, setFilter, resetFilters, filterParams };
