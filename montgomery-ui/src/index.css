@@ -40,6 +40,7 @@
   --chart-legend:   #374151;
 
   --toast-bg:       rgba(255,255,255,0.97);
+  --tour-arrow-color: rgba(255, 255, 255, 0.95);
 }
 
 .dark {
@@ -77,6 +78,7 @@
   --chart-legend:   #cbd5e1;
 
   --toast-bg:       rgba(15,18,37,0.9);
+  --tour-arrow-color: rgba(30, 41, 59, 0.95);
 }
 
 @layer base {

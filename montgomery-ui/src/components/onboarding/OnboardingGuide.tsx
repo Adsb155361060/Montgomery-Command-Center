@@ -253,12 +253,12 @@ export default function OnboardingGuide() {
             style={{
               borderTop: '10px solid transparent',
               borderBottom: '10px solid transparent',
-              borderRight: '10px solid rgba(30, 41, 59, 0.95)',
+              borderRight: '10px solid var(--tour-arrow-color, rgba(30, 41, 59, 0.95))',
             }}
           />
         )}
 
-        <div className="bg-slate-800/95 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden">
           {/* Accent bar */}
           <div className={cn('h-1 w-full bg-gradient-to-r', step.gradient)} />
 
@@ -270,13 +270,13 @@ export default function OnboardingGuide() {
                   <Icon className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+                  <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     {currentStep + 1} / {totalSteps}
                   </p>
-                  <h2 className="text-sm font-bold text-white leading-tight">{step.title}</h2>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{step.title}</h2>
                 </div>
               </div>
-              <button onClick={skipOnboarding} className="p-1 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all" title="Skip tour">
+              <button onClick={skipOnboarding} className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-all" title="Skip tour">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -292,7 +292,7 @@ export default function OnboardingGuide() {
                   <div className={cn('w-4 h-4 rounded-full bg-gradient-to-br flex items-center justify-center flex-shrink-0 mt-0.5 text-[9px] font-bold text-white', step.gradient)}>
                     {i + 1}
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">{detail}</p>
+                  <p className="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">{detail}</p>
                 </div>
               ))}
             </div>
@@ -308,8 +308,8 @@ export default function OnboardingGuide() {
                     i === currentStep
                       ? cn('flex-[2] bg-gradient-to-r', step.gradient)
                       : i < currentStep
-                      ? 'flex-1 bg-slate-600'
-                      : 'flex-1 bg-slate-700/50'
+                      ? 'flex-1 bg-gray-400 dark:bg-slate-600'
+                      : 'flex-1 bg-gray-200 dark:bg-slate-700/50'
                   )}
                 />
               ))}
@@ -319,11 +319,11 @@ export default function OnboardingGuide() {
             <div className="flex items-center justify-between">
               <div>
                 {!isFirst ? (
-                  <button onClick={goPrev} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all">
+                  <button onClick={goPrev} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-all">
                     <ChevronLeft className="w-3 h-3" /> Back
                   </button>
                 ) : (
-                  <button onClick={skipOnboarding} className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-300 transition-all">
+                  <button onClick={skipOnboarding} className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-all">
                     Skip Tour
                   </button>
                 )}
