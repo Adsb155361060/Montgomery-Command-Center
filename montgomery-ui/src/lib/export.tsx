@@ -42,19 +42,54 @@ export function exportAsPDF(title: string) {
   const style = document.createElement('style');
   style.textContent = `
     @media print {
-      body * { visibility: hidden; }
+      /* Hide sidebar, header, floating buttons, export menu */
+      nav, header, aside,
+      .no-print,
+      [class*="FloatingAi"],
+      [class*="sidebar"],
+      button { visibility: hidden; height: 0; overflow: hidden; }
+
+      /* Show the main content area */
+      body, body * { visibility: visible; }
+      main {
+        position: absolute; left: 0; top: 0; width: 100%;
+        margin: 0; padding: 40px;
+        color: #1e293b; background: white;
+        font-family: 'Georgia', serif;
+      }
+      main * { color: #334155; }
+      main h1, main h2, main h3, main h4 { color: #0f172a; }
+      main code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+      main a { color: #2563eb; }
+
+      /* Also support the explicit print-target class for BriefingPage */
       .print-target, .print-target * { visibility: visible; }
       .print-target {
         position: absolute; left: 0; top: 0; width: 100%;
         padding: 40px; color: #1e293b; background: white;
         font-family: 'Georgia', serif;
       }
-      .print-target h1, .print-target h2, .print-target h3, .print-target h4 { color: #0f172a; }
-      .print-target p, .print-target li, .print-target td { color: #334155; }
-      .print-target code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
-      .print-target a { color: #2563eb; }
+
+      /* Remove dark backgrounds and borders for print */
+      [class*="glass-card"],
+      [class*="bg-navy"],
+      [class*="bg-slate-8"],
+      [class*="bg-slate-9"] {
+        background: white !important;
+        border-color: #e2e8f0 !important;
+      }
+
+      /* Ensure tables and badges print legibly */
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-size: 11px; }
+      th { background: #f1f5f9; font-weight: 600; }
+      .badge { border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+
+      /* Remove the sidebar margin */
+      .ml-64, [class*="ml-64"] { margin-left: 0 !important; }
+
       .no-print { display: none !important; }
-      @page { margin: 1in; }
+      @page { margin: 0.75in; }
     }
   `;
   document.head.appendChild(style);
