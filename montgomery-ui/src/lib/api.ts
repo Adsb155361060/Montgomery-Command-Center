@@ -31,6 +31,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       const body = await res.json();
       msg = body.error || body.message || msg;
     } catch { /* ignore parse errors */ }
+
+    // Auto-logout on 401 — token expired or invalid
+    if (res.status === 401) {
+      localStorage.removeItem('mcc_token');
+      localStorage.removeItem('mcc_user');
+      // Redirect to login if not already there
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+
     throw new ApiError(msg, res.status);
   }
 

@@ -86,8 +86,16 @@ Return JSON array with: h3Index, riskScore, gapScore, riskLevel`,
 
     const creates = riskScores.map((z) => {
       const zd = h3Data[z.h3Index];
-      return prisma.youthRiskZone.create({
-        data: {
+      return prisma.youthRiskZone.upsert({
+        where: { h3Index: z.h3Index },
+        update: {
+          riskScore: z.riskScore,
+          gapScore: z.gapScore,
+          incidentsNearSchools: zd?.nearSchools || 0,
+          programCount: zd?.programs || 0,
+          riskLevel: z.riskLevel,
+        },
+        create: {
           h3Index: z.h3Index,
           riskScore: z.riskScore,
           gapScore: z.gapScore,

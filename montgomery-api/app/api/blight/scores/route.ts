@@ -93,8 +93,16 @@ Return JSON array: parcel, score (0-100), riskLevel, location`,
 
     const creates = scores.map((s) => {
       const pd = parcelData.find((p) => p.parcel === s.parcel);
-      return prisma.blightScore.create({
-        data: {
+      return prisma.blightScore.upsert({
+        where: { parcelNo: s.parcel },
+        update: {
+          address: s.location || pd?.location,
+          score: s.score,
+          nuisanceCount: pd?.nuisances || 0,
+          violationCount: pd?.violations || 0,
+          riskLevel: s.riskLevel,
+        },
+        create: {
           parcelNo: s.parcel,
           address: s.location || pd?.location,
           score: s.score,

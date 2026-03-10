@@ -28,7 +28,7 @@ const CITIZEN_GET_PATHS = [
 const ROLE_MODULES: Record<string, string[]> = {
   EXECUTIVE: ["sentinel", "youthshield", "blight", "compass", "command", "ai", "geo", "auth"],
   OPERATIONAL: ["sentinel", "youthshield", "blight", "compass", "ai", "geo", "auth"],
-  CITIZEN: ["auth", "geo"],
+  CITIZEN: ["auth", "geo", "ai"],
 };
 
 export function middleware(request: NextRequest) {
@@ -102,8 +102,11 @@ export function middleware(request: NextRequest) {
       if (method === "GET" && CITIZEN_GET_PATHS.some((p) => pathname.startsWith(p))) {
         return NextResponse.next();
       }
-      // Citizens can POST to auth/logout and auth/me
+      // Citizens can POST to auth/logout, auth/me, and AI chat
       if (pathname.startsWith("/api/auth/logout") || pathname.startsWith("/api/auth/me")) {
+        return NextResponse.next();
+      }
+      if (pathname.startsWith("/api/ai/") && method === "POST") {
         return NextResponse.next();
       }
     }

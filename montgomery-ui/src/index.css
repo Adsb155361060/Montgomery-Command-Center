@@ -224,6 +224,26 @@ select option {
   color: var(--chart-legend) !important;
 }
 
+/* Theme-aware chart tooltips — override inline styles */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+  border-radius: 12px !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-label {
+  color: var(--text-primary) !important;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item {
+  color: var(--text-secondary) !important;
+}
+
+/* Theme-aware CartesianGrid */
+html:not(.dark) .recharts-cartesian-grid line {
+  stroke: #e2e8f0 !important;
+}
+
 /* Toast slide-in animation */
 @keyframes slideInRight {
   from { transform: translateX(100%); opacity: 0; }

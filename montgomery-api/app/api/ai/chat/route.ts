@@ -57,11 +57,25 @@ export async function POST(request: Request) {
       dataContext = `Cross-module data: ${incidents} incidents, ${nuisances} nuisances, ${permits} permits. Recent alerts: ${JSON.stringify(alerts.map((a) => a.title))}`;
     }
 
-    const systemPrompt = getSystemPrompt(module as ModuleType);
+    const baseSystemPrompt = getSystemPrompt(module as ModuleType);
+
+    // Determine response style based on question complexity
+    const wordCount = message.trim().split(/\s+/).length;
+    const isComplex = wordCount > 30 || message.includes("analyze") || message.includes("strategy") || message.includes("compare") || message.includes("explain in detail") || message.includes("report") || message.includes("briefing");
+    const isSimple = (wordCount <= 8 && !message.includes("?")) || (wordCount <= 12 && !!message.match(/^(what is|how many|show|list|status|count|total|give me|tell me)\b/i));
+
+    let responseStyle: string;
+    if (isSimple) {
+      responseStyle = `\n\nRESPONSE RULES: The user asked a short/simple question. Reply in 1-3 concise sentences. No bullet points, no headers, no lengthy explanations. Be direct and to the point. If a number answers the question, lead with the number.`;
+    } else if (isComplex) {
+      responseStyle = `\n\nRESPONSE RULES: The user asked a complex/analytical question. Provide a structured, detailed response with headers and bullet points where appropriate. Keep it thorough but focused — no filler.`;
+    } else {
+      responseStyle = `\n\nRESPONSE RULES: Match your response length to the question's complexity. For straightforward questions, use 2-4 sentences. For moderate questions, use a short paragraph with optional bullet points. Never pad with unnecessary context or caveats. Be direct and actionable.`;
+    }
+
+    const systemPrompt = baseSystemPrompt + responseStyle;
     const fullPrompt = `${message}\n\n${context ? `User context: ${context}\n` : ""}Live data: ${dataContext}`;
 
-    // Select model based on complexity
-    const isComplex = message.length > 200 || message.includes("analyze") || message.includes("strategy");
     const { text, model: usedModel } = isComplex
       ? await AI.strategize(fullPrompt, systemPrompt)
       : await AI.analyze(fullPrompt, systemPrompt);
