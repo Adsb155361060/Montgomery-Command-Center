@@ -54,7 +54,7 @@ export default function InterventionPage() {
   const stepsArr = Array.isArray(steps) ? steps : [];
 
   // Interventions array (from API route type)
-  const interventions: any[] = pick(d, 'interventions', 'programs', 'recommendations', 'strategies') || [];
+  const interventions: any[] = pick(d, 'interventions', 'interventionRouting', 'assignedInterventions', 'programs', 'recommendations', 'strategies') || [];
   const interventionsArr = Array.isArray(interventions) ? interventions : [];
 
   // ─── Derived stats from actual data ───
@@ -86,12 +86,12 @@ export default function InterventionPage() {
   // Stat values: use top-level fields if present, otherwise derive from interventions array
   const statInterventions = interventionsArr.length || stepsArr.length;
   const statCost = annualCost > 0 ? formatCurrency(annualCost)
-    : interventionsArr.length > 0 ? `${interventionsArr.length} Programs` : '—';
-  const statProviders = uniqueProviders.length > 0 ? `${uniqueProviders.length}` : (youthReached > 0 ? String(youthReached) : '—');
+    : interventionsArr.length > 0 ? `${interventionsArr.length} Programs` : hasData ? 'N/A' : '—';
+  const statProviders = uniqueProviders.length > 0 ? `${uniqueProviders.length}` : (youthReached > 0 ? String(youthReached) : hasData ? 'N/A' : '—');
   const statTimeline = typeof timelineVal === 'number' ? `${timelineVal}mo`
     : timelineVal ? String(timelineVal)
     : uniqueTimeSlots.length > 0 ? `${uniqueTimeSlots.length} Slots`
-    : highUrgencyCount > 0 ? `${highUrgencyCount} Urgent` : '—';
+    : highUrgencyCount > 0 ? `${highUrgencyCount} Urgent` : hasData ? 'N/A' : '—';
 
   // Cost breakdown
   const breakdown = pick(d, 'breakdown', 'costBreakdown', 'budgetBreakdown', 'costs');
@@ -111,7 +111,7 @@ export default function InterventionPage() {
     'youthReached', 'estimatedYouth', 'participants', 'targetYouth', 'youthServed', 'totalParticipants',
     'timelineMonths', 'timeline', 'duration', 'implementationTimeline', 'months',
     'implementationSteps', 'steps', 'implementationPlan', 'plan', 'phases', 'actionItems', 'actions', 'milestones',
-    'interventions', 'programs', 'recommendations', 'strategies',
+    'interventions', 'interventionRouting', 'assignedInterventions', 'programs', 'recommendations', 'strategies',
     'breakdown', 'costBreakdown', 'budgetBreakdown', 'costs',
     'justification', 'narrative', 'rationale', 'summary', 'analysis', 'explanation',
     'coverageGaps', 'gaps', 'riskAreas', 'challenges',
@@ -173,7 +173,7 @@ export default function InterventionPage() {
             <>
               {/* Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label={estReduction > 0 ? "Est. Reduction" : "Interventions"} value={estReduction > 0 ? `${estReduction}%` : statInterventions || '—'} icon={<TrendingDown className="w-4 h-4" />} color="text-emerald-400" />
+                <StatCard label={estReduction > 0 ? "Est. Reduction" : "Interventions"} value={estReduction > 0 ? `${estReduction}%` : statInterventions > 0 ? statInterventions : '—'} icon={<TrendingDown className="w-4 h-4" />} color="text-emerald-400" />
                 <StatCard label="Annual Cost" value={statCost} icon={<DollarSign className="w-4 h-4" />} color="text-amber-400" />
                 <StatCard label="Providers" value={statProviders} icon={<Users className="w-4 h-4" />} color="text-youthshield-400" />
                 <StatCard label={uniqueTimeSlots.length > 0 ? "Time Slots" : highUrgencyCount > 0 ? "Priority" : "Timeline"} value={statTimeline} icon={<Clock className="w-4 h-4" />} color="text-blight-400" />

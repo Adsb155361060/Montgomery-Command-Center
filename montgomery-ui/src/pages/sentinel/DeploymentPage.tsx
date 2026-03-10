@@ -105,15 +105,15 @@ export default function DeploymentPage() {
           {/* Coverage Summary */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="glass-card p-5 text-center">
-              <p className="stat-value text-sentinel-400">{totalCoverage > 0 ? `${totalCoverage}%` : '—'}</p>
+              <p className="stat-value text-sentinel-400">{totalCoverage > 0 ? `${totalCoverage}%` : hasResult ? 'N/A' : '—'}</p>
               <p className="stat-label">Total Coverage</p>
             </div>
             <div className="glass-card p-5 text-center">
-              <p className="stat-value text-white">{assignments.length || '—'}</p>
+              <p className="stat-value text-white">{assignments.length > 0 ? assignments.length : hasResult ? '0' : '—'}</p>
               <p className="stat-label">Assignments</p>
             </div>
             <div className="glass-card p-5 text-center">
-              <p className="stat-value text-amber-400">{gapZones.length || 0}</p>
+              <p className="stat-value text-amber-400">{gapZones.length}</p>
               <p className="stat-label">Gap Zones</p>
             </div>
           </div>

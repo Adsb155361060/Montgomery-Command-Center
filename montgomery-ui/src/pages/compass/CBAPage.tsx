@@ -181,13 +181,13 @@ export default function CBAPage() {
                 />
                 <StatCard
                   label="CBA Components"
-                  value={components.length || Object.keys(taxAbatement).length || '—'}
+                  value={components.length > 0 ? components.length : Object.keys(taxAbatement).length > 0 ? Object.keys(taxAbatement).length : '—'}
                   icon={<FileText className="w-4 h-4" />}
                   color="text-blue-400"
                 />
                 <StatCard
                   label="Partners"
-                  value={trainingPartners.length || comparables.length || negotiationPoints.length || components.length || '—'}
+                  value={trainingPartners.length > 0 ? trainingPartners.length : comparables.length > 0 ? comparables.length : negotiationPoints.length > 0 ? negotiationPoints.length : components.length > 0 ? components.length : '—'}
                   icon={<Handshake className="w-4 h-4" />}
                   color="text-purple-400"
                 />

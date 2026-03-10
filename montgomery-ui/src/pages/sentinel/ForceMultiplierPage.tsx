@@ -31,8 +31,8 @@ export default function ForceMultiplierPage() {
 
   const chartData = zones.slice(0, 15).map((z: any, i: number) => ({
     zone: `Zone ${i + 1}`,
-    riskScore: z.riskScore || 0,
-    multiplier: z.multiplierEffect || 0,
+    riskScore: z.score ?? z.riskScore ?? 0,
+    multiplier: z.multiplierEffect ?? z.multiplier ?? 0,
   }));
 
   return (
@@ -85,13 +85,13 @@ export default function ForceMultiplierPage() {
           <div key={zone.id} className="glass-card p-5 border-l-4 border-l-sentinel-500">
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-xs text-slate-500">Patrol Zone {String.fromCharCode(65 + (idx % 26))}-{Math.floor(idx / 26) + 1}</span>
-              <span className={`badge text-xs ${zone.riskScore > 70 ? 'badge-danger' : zone.riskScore > 40 ? 'badge-warning' : 'badge-success'}`}>
-                Risk: {zone.riskScore}
+              <span className={`badge text-xs ${(zone.score ?? zone.riskScore ?? 0) > 70 ? 'badge-danger' : (zone.score ?? zone.riskScore ?? 0) > 40 ? 'badge-warning' : 'badge-success'}`}>
+                Risk: {zone.score ?? zone.riskScore ?? 0}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <p className="text-lg font-bold font-mono text-sentinel-400">{zone.multiplierEffect?.toFixed(1)}x</p>
+                <p className="text-lg font-bold font-mono text-sentinel-400">{(zone.multiplierEffect ?? zone.multiplier) ? `${(zone.multiplierEffect ?? zone.multiplier).toFixed(1)}x` : `${((zone.score ?? zone.riskScore ?? 0) / 10).toFixed(1)}x`}</p>
                 <p className="text-xs text-slate-500">Multiplier</p>
               </div>
               <div>

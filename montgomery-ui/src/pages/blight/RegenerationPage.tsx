@@ -60,18 +60,18 @@ export default function RegenerationPage() {
   const parcels: any[] = raw ? (Array.isArray(raw.data) ? raw.data : Array.isArray(raw) ? raw : [raw]) : [];
 
   // Compute summary stats from actual parcel data
-  const totalAcreage = parcels.reduce((s, p) => s + (p.acreage || 0), 0);
-  const avgBlightScore = parcels.length ? Math.round(parcels.reduce((s, p) => s + (p.blightScore || 0), 0) / parcels.length) : 0;
-  const totalRecs = parcels.reduce((s, p) => s + (Array.isArray(p.recommendations) ? p.recommendations.length : 0), 0);
-  const estInvestment = parcels.reduce((s, p) => {
+  const totalAcreage = parcels.reduce((s: number, p: any) => s + (p.acreage || 0), 0);
+  const avgBlightScore = parcels.length ? Math.round(parcels.reduce((s: number, p: any) => s + (p.blightScore ?? p.score ?? 0), 0) / parcels.length) : 0;
+  const totalRecs = parcels.reduce((s: number, p: any) => s + (Array.isArray(p.recommendations) ? p.recommendations.length : 0), 0);
+  const estInvestment = parcels.reduce((s: number, p: any) => {
     if (!Array.isArray(p.recommendations)) return s;
-    return s + p.recommendations.reduce((rs: number, r: any) => rs + parseCostMid(r.costRange || ''), 0);
+    return s + p.recommendations.reduce((rs: number, r: any) => rs + parseCostMid(r.estimatedCost || r.costRange || r.cost || ''), 0);
   }, 0);
 
   // Chart data: blight score per parcel
-  const chartData = parcels.map(p => ({
+  const chartData = parcels.map((p: any) => ({
     name: (p.address || p.parcelNum || '').slice(0, 20),
-    blightScore: p.blightScore || 0,
+    blightScore: p.blightScore ?? p.score ?? 0,
     acreage: +(p.acreage || 0).toFixed(2),
   }));
 
@@ -164,7 +164,7 @@ export default function RegenerationPage() {
                       >
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blight-500/20 flex items-center justify-center">
-                            <span className={`text-lg font-bold ${blightColor(p.blightScore || 0)}`}>{p.blightScore}</span>
+                            <span className={`text-lg font-bold ${blightColor(p.blightScore ?? p.score ?? 0)}`}>{p.blightScore ?? p.score ?? '—'}</span>
                           </div>
                           <div className="min-w-0">
                             <h4 className="text-sm font-semibold text-slate-200 truncate">{p.address || p.parcelNum}</h4>
@@ -200,35 +200,44 @@ export default function RegenerationPage() {
                               <div className="grid gap-3">
                                 {p.recommendations.map((rec: any, ri: number) => (
                                   <div key={ri} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                                    {(() => {
+                                      const recTitle = rec.reuse || rec.option || rec.title || rec.name || `Option ${ri + 1}`;
+                                      const recCost = rec.estimatedCost || rec.costRange || rec.cost;
+                                      const recViability = rec.viabilityPct ?? rec.viability;
+                                      return (
+                                        <>
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
-                                        <h6 className="text-sm font-medium text-slate-200">{rec.option || rec.title || rec.name || `Option ${ri + 1}`}</h6>
+                                        <h6 className="text-sm font-medium text-slate-200">{recTitle}</h6>
                                         <div className="flex flex-wrap items-center gap-3 mt-1.5">
-                                          {rec.costRange && <span className="text-xs text-compass-400 font-medium">💰 {rec.costRange}</span>}
+                                          {recCost && <span className="text-xs text-compass-400 font-medium">💰 {recCost}</span>}
                                           {rec.timeframe && <span className="text-xs text-slate-400">⏱ {rec.timeframe}</span>}
                                         </div>
                                       </div>
-                                      {rec.viability != null && (
+                                      {recViability != null && (
                                         <div className="flex-shrink-0 text-center">
-                                          <div className={`text-lg font-bold ${rec.viability >= 80 ? 'text-emerald-400' : rec.viability >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
-                                            {rec.viability}%
+                                          <div className={`text-lg font-bold ${recViability >= 80 ? 'text-emerald-400' : recViability >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
+                                            {recViability}%
                                           </div>
                                           <div className="text-[9px] text-slate-500 uppercase">Viability</div>
                                         </div>
                                       )}
                                     </div>
                                     {/* Viability bar */}
-                                    {rec.viability != null && (
+                                    {recViability != null && (
                                       <div className="mt-2 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
                                         <div
-                                          className={`h-full rounded-full transition-all ${rec.viability >= 80 ? 'bg-emerald-500' : rec.viability >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
-                                          style={{ width: `${rec.viability}%` }}
+                                          className={`h-full rounded-full transition-all ${recViability >= 80 ? 'bg-emerald-500' : recViability >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                          style={{ width: `${recViability}%` }}
                                         />
                                       </div>
                                     )}
                                     {rec.justification && (
                                       <p className="text-sm text-slate-400 mt-2 leading-relaxed">{rec.justification}</p>
                                     )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 ))}
                               </div>

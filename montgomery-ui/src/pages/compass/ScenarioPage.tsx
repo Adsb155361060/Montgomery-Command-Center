@@ -346,8 +346,8 @@ export default function ScenarioPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard label="Tax Revenue" value={taxRevenueDisplay} icon={<DollarSign className="w-4 h-4" />} color="text-emerald-400" />
                 <StatCard label="Jobs Created" value={jobsCreated > 0 ? formatNumber(jobsCreated) : '—'} icon={<Users className="w-4 h-4" />} color="text-blight-400" />
-                <StatCard label={roi > 0 ? "ROI" : confidenceLevel ? "Confidence" : "Projections"} value={roi > 0 ? `${roi}%` : confidenceLevel ? String(confidenceLevel) : (projections.length > 0 ? `${projections.length} Periods` : '—')} icon={<TrendingUp className="w-4 h-4" />} color="text-compass-400" />
-                <StatCard label={multiplier > 0 ? "Multiplier" : riskFactors.length > 0 ? "Risk Factors" : assumptions.length > 0 ? "Assumptions" : "Impact Areas"} value={multiplier > 0 ? `${multiplier}x` : riskFactors.length > 0 ? riskFactors.length : assumptions.length > 0 ? assumptions.length : '—'} icon={<Building className="w-4 h-4" />} color="text-amber-400" />
+                <StatCard label={roi > 0 ? "ROI" : confidenceLevel ? "Confidence" : "Projections"} value={roi > 0 ? `${roi}%` : confidenceLevel ? String(confidenceLevel) : (projections.length > 0 ? `${projections.length} Periods` : hasData ? 'N/A' : '—')} icon={<TrendingUp className="w-4 h-4" />} color="text-compass-400" />
+                <StatCard label={multiplier > 0 ? "Multiplier" : riskFactors.length > 0 ? "Risk Factors" : assumptions.length > 0 ? "Assumptions" : "Impact Areas"} value={multiplier > 0 ? `${multiplier}x` : riskFactors.length > 0 ? String(riskFactors.length) : assumptions.length > 0 ? String(assumptions.length) : hasData ? 'N/A' : '—'} icon={<Building className="w-4 h-4" />} color="text-amber-400" />
               </div>
 
               {/* Simulation Parameters (if present) */}

@@ -59,9 +59,9 @@ export default function ScoresPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div><p className="text-xs font-mono text-blight-400">{s.nuisances ?? '-'}</p><p className="text-[9px] text-slate-500">Nuisances</p></div>
-                <div><p className="text-xs font-mono text-amber-400">{s.violations ?? '-'}</p><p className="text-[9px] text-slate-500">Violations</p></div>
-                <div><p className="text-xs font-mono text-youthshield-400">{s.environmentalFactor ?? s.environmental ?? '-'}</p><p className="text-[9px] text-slate-500">Env Factor</p></div>
+                <div><p className="text-xs font-mono text-blight-400">{s.nuisanceCount ?? s.nuisances ?? '-'}</p><p className="text-[9px] text-slate-500">Nuisances</p></div>
+                <div><p className="text-xs font-mono text-amber-400">{s.violationCount ?? s.violations ?? '-'}</p><p className="text-[9px] text-slate-500">Violations</p></div>
+                <div><p className="text-xs font-mono text-youthshield-400">{s.environmentalFactor ?? s.environmental ?? s.envFactor ?? '-'}</p><p className="text-[9px] text-slate-500">Env Factor</p></div>
               </div>
 
               {s.address && <p className="text-[10px] text-slate-500 mt-2 truncate">📍 {s.address}</p>}
