@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { BackgroundTaskProvider } from '@/contexts/BackgroundTaskContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import App from '@/App';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import '@/index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <AuthProvider>
           <BackgroundTaskProvider>
-            <App />
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
           </BackgroundTaskProvider>
         </AuthProvider>
       </ThemeProvider>

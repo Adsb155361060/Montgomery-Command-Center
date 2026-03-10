@@ -49,7 +49,7 @@ export default function ResourcesPage() {
   if (loading) return <LoadingScreen message="Loading youth resources..." />;
   if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 
-  const allResources = flattenResources(data);
+  const allResources = useMemo(() => flattenResources(data), [data]);
 
   const resources = useMemo(() => {
     let filtered = type ? allResources.filter((r: any) => r.type === type) : allResources;

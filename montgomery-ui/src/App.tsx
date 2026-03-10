@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { LoadingScreen } from '@/components/shared';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Layout
 import Layout from '@/components/layout/Layout';
@@ -50,7 +51,11 @@ const AiChatPage = lazy(() => import('@/pages/AiChatPage'));
 const GeoLookupPage = lazy(() => import('@/pages/GeoLookupPage'));
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingScreen message="Loading..." />}>{children}</Suspense>;
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingScreen message="Loading..." />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
 }
 
 export default function App() {
