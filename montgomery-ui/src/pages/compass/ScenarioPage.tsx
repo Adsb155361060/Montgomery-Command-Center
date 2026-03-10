@@ -84,11 +84,41 @@ export default function ScenarioPage() {
     return total;
   }
 
-  // Helper: get impactAnalysis year data — the AI nests all metrics under impactAnalysis.yearX
-  const impactYears = pick(d, 'impactAnalysis', 'impact_analysis', 'projections');
-  const yearKeys = impactYears && typeof impactYears === 'object' ? Object.keys(impactYears).filter(k => /year|yr|horizon/i.test(k)) : [];
-  // Pick a representative year for KPI display (prefer year5 or year10 for operational data)
-  const kpiYear = impactYears?.year5 || impactYears?.year10 || impactYears?.year3 || (yearKeys.length > 0 ? impactYears[yearKeys[Math.min(2, yearKeys.length - 1)]] : null);
+  // Helper: get impactAnalysis — AI returns either:
+  //   Object: {year1: {taxRevenue, jobCreation, ...}, year3: {...}, ...}
+  //   Array:  [{horizonYears: 1, jobs: {...}, taxRevenue: {...}, ...}, ...]
+  const impactYearsRaw = pick(d, 'impactAnalysis', 'impact_analysis', 'projections');
+
+  // Normalize to array of year objects
+  const impactYearsList: any[] = (() => {
+    if (!impactYearsRaw) return [];
+    if (Array.isArray(impactYearsRaw)) return impactYearsRaw;
+    if (typeof impactYearsRaw === 'object') {
+      const entries = Object.entries(impactYearsRaw);
+      const yearEntries = entries.filter(([k]) => /year|yr|horizon/i.test(k));
+      if (yearEntries.length > 0) return yearEntries.map(([k, v]: [string, any]) => ({ _yearKey: k, ...v }));
+      // Numeric keys (0,1,2...) — already array-like
+      if (entries.every(([k]) => /^\d+$/.test(k))) return entries.map(([, v]) => v);
+    }
+    return [];
+  })();
+
+  // Pick a representative year for KPI display (prefer ~year5 for operational data)
+  const kpiYear = (() => {
+    if (impactYearsList.length === 0) return null;
+    // If items have horizonYears, find year 5 or 10
+    const byHorizon = impactYearsList.find((y: any) => y.horizonYears === 5 || y.horizon_years === 5)
+      || impactYearsList.find((y: any) => y.horizonYears === 10 || y.horizon_years === 10)
+      || impactYearsList.find((y: any) => y.horizonYears === 3 || y.horizon_years === 3);
+    if (byHorizon) return byHorizon;
+    // If items have _yearKey from object format
+    const byKey = impactYearsList.find((y: any) => y._yearKey === 'year5')
+      || impactYearsList.find((y: any) => y._yearKey === 'year10')
+      || impactYearsList.find((y: any) => y._yearKey === 'year3');
+    if (byKey) return byKey;
+    // Fallback: middle element
+    return impactYearsList[Math.min(2, impactYearsList.length - 1)];
+  })();
 
   // --- Total Revenue / Tax Revenue ---
   const taxRevenueObj = pick(d, 'taxRevenue', 'tax_revenue', 'taxImpact', 'tax_impact', 'fiscalImpact', 'fiscal_impact', 'revenueProjection', 'revenue_projection');
@@ -105,11 +135,19 @@ export default function ScenarioPage() {
       for (const [, v] of Object.entries(taxRevenueObj)) { const n = resolveNumeric(v); if (n > 0) return n; }
     }
     if (typeof taxRevenueObj === 'string') return resolveNumeric(taxRevenueObj);
-    // ★ Try extracting from impactAnalysis.yearX.taxRevenue (the actual API structure)
+    // ★ Try extracting from impactAnalysis year data (object or array format)
     if (kpiYear) {
       const yearTax = pick(kpiYear, 'taxRevenue', 'tax_revenue', 'fiscalImpact', 'fiscal_impact');
       if (yearTax && typeof yearTax === 'object') {
         const sum = sumYearSection(yearTax);
+        if (sum > 0) return sum;
+      }
+    }
+    // Try all impact years for the highest tax value
+    for (const yr of impactYearsList) {
+      const yrTax = pick(yr, 'taxRevenue', 'tax_revenue', 'fiscalImpact', 'fiscal_impact');
+      if (yrTax && typeof yrTax === 'object') {
+        const sum = sumYearSection(yrTax);
         if (sum > 0) return sum;
       }
     }
@@ -144,27 +182,25 @@ export default function ScenarioPage() {
       const directTotal = resolveNumeric(pick(jobImpactObj, 'total', 'totalJobs', 'mean'));
       if (directTotal > 0) return directTotal;
     }
-    // ★ Try extracting from impactAnalysis.yearX.jobCreation (the actual API structure)
+    // ★ Try extracting from impactAnalysis year data (object or array format)
+    // The AI may use "jobCreation", "jobs", "job_creation", etc.
     if (kpiYear) {
-      const yearJobs = pick(kpiYear, 'jobCreation', 'job_creation', 'jobImpact', 'job_impact', 'employment');
+      const yearJobs = pick(kpiYear, 'jobCreation', 'job_creation', 'jobs', 'jobImpact', 'job_impact', 'employment');
       if (yearJobs && typeof yearJobs === 'object') {
         const sum = sumYearSection(yearJobs);
         if (sum > 0) return sum;
       }
     }
-    // If we have impact years, sum peak employment across all years
-    if (yearKeys.length > 0) {
-      let peakJobs = 0;
-      for (const yk of yearKeys) {
-        const yr = impactYears[yk];
-        const yrJobs = pick(yr, 'jobCreation', 'job_creation', 'jobImpact', 'job_impact');
-        if (yrJobs && typeof yrJobs === 'object') {
-          const sum = sumYearSection(yrJobs);
-          if (sum > peakJobs) peakJobs = sum;
-        }
+    // Find peak employment across all impact years
+    let peakJobs = 0;
+    for (const yr of impactYearsList) {
+      const yrJobs = pick(yr, 'jobCreation', 'job_creation', 'jobs', 'jobImpact', 'job_impact', 'employment');
+      if (yrJobs && typeof yrJobs === 'object') {
+        const sum = sumYearSection(yrJobs);
+        if (sum > peakJobs) peakJobs = sum;
       }
-      if (peakJobs > 0) return peakJobs;
     }
+    if (peakJobs > 0) return peakJobs;
     return 0;
   })();
 
@@ -199,8 +235,22 @@ export default function ScenarioPage() {
 
   // Yearly projections — the AI might use many names
   const projections: any[] = (() => {
-    // First check impactAnalysis or simulationResults for year-based entries
-    const yearSource = impactAnalysis || simulationResults;
+    // ★ Use our normalized impactYearsList (handles both array and object formats)
+    if (impactYearsList.length > 0) {
+      return impactYearsList.map((yr: any, i: number) => {
+        const label = yr._yearKey ? labelify(yr._yearKey)
+          : yr.horizonYears != null ? `Year ${yr.horizonYears}`
+          : yr.horizon_years != null ? `Year ${yr.horizon_years}`
+          : yr.horizon ? String(yr.horizon).slice(0, 20)
+          : `Year ${i + 1}`;
+        const flat = flattenForChart(yr);
+        // Remove non-numeric metadata from chart data
+        delete flat['Horizon Years']; delete flat['Horizon']; delete flat['Summary'];
+        return { year: label, ...flat };
+      });
+    }
+    // Fallback: check simulationResults or other locations
+    const yearSource = simulationResults;
     if (yearSource && typeof yearSource === 'object' && !Array.isArray(yearSource)) {
       const yearEntries = Object.entries(yearSource).filter(([k]) => /year|yr|horizon/i.test(k));
       if (yearEntries.length > 0) {
@@ -210,7 +260,7 @@ export default function ScenarioPage() {
         }));
       }
     }
-    const rawProj = pick(d, 'yearlyProjection', 'projections', 'annualProjection', 'yearlyForecast', 'forecast', 'yearlyData');
+    const rawProj = pick(d, 'yearlyProjection', 'annualProjection', 'yearlyForecast', 'forecast', 'yearlyData');
     if (Array.isArray(rawProj)) return rawProj;
     if (rawProj && typeof rawProj === 'object') {
       const entries = Object.entries(rawProj);
@@ -264,7 +314,9 @@ export default function ScenarioPage() {
     // Monte Carlo meta fields
     'simulationId', 'simulation_id', 'simulationName', 'simulation_name', 'simulationEngine', 'simulation_engine', 'timestamp',
     'analysisHorizonsYears', 'analysis_horizons_years', 'contextualInvestments', 'contextual_investments',
-    'scenarioID', 'scenario_id', 'communityBenefitAgreementRecommendations', 'community_benefit_agreement_recommendations',
+    'scenarioID', 'scenario_id', 'scenarioDetails', 'scenario_details', 'validationNotes', 'validation_notes',
+    'communityBenefitAgreementRecommendations', 'community_benefit_agreement_recommendations',
+    'communityBenefitRecommendations', 'community_benefit_recommendations',
     'comparableCityAnalysis', 'comparable_city_analysis',
   ]);
 
