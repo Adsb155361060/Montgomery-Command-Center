@@ -84,30 +84,24 @@ Return JSON array with: h3Index, riskScore, gapScore, riskLevel`,
       SYSTEM_PROMPTS.YOUTHSHIELD
     );
 
-    const creates = riskScores.map((z) => {
+    // Delete existing zones for these h3 indices then bulk-insert fresh ones
+    const h3Indices = riskScores.map((z) => z.h3Index).filter(Boolean);
+    await prisma.youthRiskZone.deleteMany({ where: { h3Index: { in: h3Indices } } });
+
+    const data = riskScores.map((z) => {
       const zd = h3Data[z.h3Index];
-      return prisma.youthRiskZone.upsert({
-        where: { h3Index: z.h3Index },
-        update: {
-          riskScore: z.riskScore,
-          gapScore: z.gapScore,
-          incidentsNearSchools: zd?.nearSchools || 0,
-          programCount: zd?.programs || 0,
-          riskLevel: z.riskLevel,
-        },
-        create: {
-          h3Index: z.h3Index,
-          riskScore: z.riskScore,
-          gapScore: z.gapScore,
-          incidentsNearSchools: zd?.nearSchools || 0,
-          programCount: zd?.programs || 0,
-          riskLevel: z.riskLevel,
-        },
-      });
+      return {
+        h3Index: z.h3Index,
+        riskScore: z.riskScore,
+        gapScore: z.gapScore,
+        incidentsNearSchools: zd?.nearSchools || 0,
+        programCount: zd?.programs || 0,
+        riskLevel: z.riskLevel,
+      };
     });
 
-    const results = await prisma.$transaction(creates);
-    return ok({ zones: results.length, message: "Youth risk zones recalculated" });
+    await prisma.youthRiskZone.createMany({ data });
+    return ok({ zones: data.length, message: "Youth risk zones recalculated" });
   } catch (e) {
     console.error("Youth risk calculation error:", e);
     return serverError("Failed to calculate youth risk zones");

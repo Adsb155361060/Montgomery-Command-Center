@@ -91,30 +91,24 @@ Return JSON array: parcel, score (0-100), riskLevel, location`,
       SYSTEM_PROMPTS.BLIGHT
     );
 
-    const creates = scores.map((s) => {
+    // Delete existing scores for these parcels then bulk-insert fresh ones
+    const parcelNos = scores.map((s) => s.parcel).filter(Boolean);
+    await prisma.blightScore.deleteMany({ where: { parcelNo: { in: parcelNos } } });
+
+    const data = scores.map((s) => {
       const pd = parcelData.find((p) => p.parcel === s.parcel);
-      return prisma.blightScore.upsert({
-        where: { parcelNo: s.parcel },
-        update: {
-          address: s.location || pd?.location,
-          score: s.score,
-          nuisanceCount: pd?.nuisances || 0,
-          violationCount: pd?.violations || 0,
-          riskLevel: s.riskLevel,
-        },
-        create: {
-          parcelNo: s.parcel,
-          address: s.location || pd?.location,
-          score: s.score,
-          nuisanceCount: pd?.nuisances || 0,
-          violationCount: pd?.violations || 0,
-          riskLevel: s.riskLevel,
-        },
-      });
+      return {
+        parcelNo: s.parcel,
+        address: s.location || pd?.location,
+        score: s.score,
+        nuisanceCount: pd?.nuisances || 0,
+        violationCount: pd?.violations || 0,
+        riskLevel: s.riskLevel,
+      };
     });
 
-    const results = await prisma.$transaction(creates);
-    return ok({ scored: results.length, message: "Blight scores calculated" });
+    await prisma.blightScore.createMany({ data });
+    return ok({ scored: data.length, message: "Blight scores calculated" });
   } catch (e) {
     console.error("Blight scoring error:", e);
     return serverError("Failed to calculate blight scores");
