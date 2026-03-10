@@ -8,6 +8,7 @@ import {
   BookOpen, Baby, ShieldAlert, Lightbulb, ChevronRight, Users, MapPinned,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeH3, friendlyZone, isH3Hex } from '@/components/shared/AdaptiveRenderer';
 
 const RISK_COLORS: Record<string, string> = {
   critical: '#ef4444',
@@ -123,7 +124,7 @@ export default function GapAnalysisPage() {
                 formatter={(v: any, name: string) => [v, name === 'riskScore' ? 'Risk Score' : 'Gap Score']}
                 labelFormatter={(label: string, payload: any[]) => {
                   const d = payload?.[0]?.payload;
-                  return d?.h3Index ? `${label} (${d.h3Index.slice(0, 10)}…)` : label;
+                  return d?.h3Index ? `${label} (District ${d.district ?? '?'})` : label;
                 }}
               />
               <Bar dataKey="riskScore" name="Risk Score" radius={[4, 4, 0, 0]}>
@@ -150,7 +151,7 @@ export default function GapAnalysisPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{zoneName}</span>
-                      <p className="text-[10px] font-mono text-slate-500 dark:text-slate-500 mt-0.5">{gap.h3Index}</p>
+                      {gap.district && <p className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">District {gap.district}</p>}
                     </div>
                     <span className={cn('text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border', RISK_BADGE[level] ?? RISK_BADGE.medium)}>
                       {level}
@@ -253,8 +254,8 @@ export default function GapAnalysisPage() {
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {r.targetZones.slice(0, 8).map((z: string, j: number) => (
-                            <span key={j} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400">
-                              {z.slice(0, 12)}…
+                            <span key={j} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400">
+                              {isH3Hex(z) ? friendlyZone(z) : z}
                             </span>
                           ))}
                           {r.targetZones.length > 8 && (

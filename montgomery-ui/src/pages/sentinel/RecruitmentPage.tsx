@@ -411,7 +411,7 @@ export default function RecruitmentPage() {
                     <InfoPill icon={<Clock className="w-3.5 h-3.5" />} label="Shift" value={roi.targetZone.shift} />
                   )}
                   {roi.targetZone.h3_index && (
-                    <InfoPill icon={<MapPin className="w-3.5 h-3.5" />} label="H3 Zone" value={roi.targetZone.h3_index.slice(0, 12) + '…'} />
+                    <InfoPill icon={<MapPin className="w-3.5 h-3.5" />} label="Patrol Zone" value={`Zone ${roi.targetZone.district ?? '?'}`} />
                   )}
                   {roi.targetZone.annual_incidents_in_zone != null && (
                     <InfoPill icon={<Shield className="w-3.5 h-3.5" />} label="Annual Incidents" value={String(roi.targetZone.annual_incidents_in_zone)} />

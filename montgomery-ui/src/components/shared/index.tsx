@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { Loader2, AlertTriangle, RefreshCw, Filter, X, Search } from 'lucide-react';
 import { useState, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
+import { sanitizeH3 } from './AdaptiveRenderer';
 
 // ── Filter Bar ──
 export interface FilterField {
@@ -433,14 +434,14 @@ export function AlertCard({
   return (
     <div className={cn('glass-card border-l-4 p-5', severityColors[severity.toLowerCase()] || severityColors.low)}>
       <div className="flex items-start justify-between mb-2">
-        <h4 className="font-semibold text-white text-sm">{title}</h4>
+        <h4 className="font-semibold text-white text-sm">{sanitizeH3(title)}</h4>
         <span className="text-xs text-slate-500">{time}</span>
       </div>
-      <p className="text-sm text-slate-400 mb-3">{description}</p>
+      <p className="text-sm text-slate-400 mb-3">{sanitizeH3(description)}</p>
       {recommendation && (
         <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
           <p className="text-xs text-amber-400 font-medium mb-1">RECOMMENDATION</p>
-          <p className="text-sm text-slate-300">{recommendation}</p>
+          <p className="text-sm text-slate-300">{sanitizeH3(recommendation)}</p>
         </div>
       )}
       <div className="flex gap-2">
