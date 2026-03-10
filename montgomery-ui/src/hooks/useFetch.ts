@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface UseFetchResult<T> {
   data: T | null;
@@ -14,14 +14,21 @@ export function useFetch<T>(fetcher: () => Promise<{ data: T; [key: string]: unk
   const [raw, setRaw] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const execute = useCallback(async () => {
-    setLoading(true);
+    // Only show full loading spinner on initial fetch.
+    // On refetches (filter changes, pagination), keep existing data visible
+    // so FilterBar and other UI stays mounted.
+    if (!hasLoadedOnce.current) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const res = await fetcher();
       setData(res.data);
       setRaw(res as Record<string, unknown>);
+      hasLoadedOnce.current = true;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
