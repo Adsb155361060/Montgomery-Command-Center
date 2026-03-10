@@ -64,50 +64,64 @@ export default function ScenarioPage() {
 
   /* ─── Resilient field extraction ─── */
 
+  // Helper: extract numeric value from nested {value, confidenceInterval95} objects
+  function extractValue(obj: any): number {
+    if (!obj) return 0;
+    if (typeof obj === 'number') return obj;
+    if (typeof obj === 'string') return resolveNumeric(obj);
+    if (typeof obj === 'object' && 'value' in obj) return resolveNumeric(obj.value);
+    if (typeof obj === 'object' && 'mean' in obj) return resolveNumeric(obj.mean);
+    return resolveNumeric(obj);
+  }
+
+  // Helper: sum all {value} fields in a year's section (e.g. taxRevenue.property_annual_usd.value + sales_...)
+  function sumYearSection(section: any): number {
+    if (!section || typeof section !== 'object') return 0;
+    let total = 0;
+    for (const v of Object.values(section)) {
+      total += extractValue(v);
+    }
+    return total;
+  }
+
+  // Helper: get impactAnalysis year data — the AI nests all metrics under impactAnalysis.yearX
+  const impactYears = pick(d, 'impactAnalysis', 'impact_analysis', 'projections');
+  const yearKeys = impactYears && typeof impactYears === 'object' ? Object.keys(impactYears).filter(k => /year|yr|horizon/i.test(k)) : [];
+  // Pick a representative year for KPI display (prefer year5 or year10 for operational data)
+  const kpiYear = impactYears?.year5 || impactYears?.year10 || impactYears?.year3 || (yearKeys.length > 0 ? impactYears[yearKeys[Math.min(2, yearKeys.length - 1)]] : null);
+
   // --- Total Revenue / Tax Revenue ---
-  const taxRevenueObj = pick(d, 'taxRevenue', 'tax_revenue', 'taxImpact', 'tax_impact', 'fiscalImpact', 'fiscal_impact', 'revenueProjection', 'revenue_projection', 'revenueProjections', 'revenue_projections');
+  const taxRevenueObj = pick(d, 'taxRevenue', 'tax_revenue', 'taxImpact', 'tax_impact', 'fiscalImpact', 'fiscal_impact', 'revenueProjection', 'revenue_projection');
   const totalRevenue = (() => {
     // Try flat top-level numbers
-    const flat = resolveNumeric(pick(d, 'totalRevenue', 'total_revenue', 'totalTaxRevenue', 'total_tax_revenue', 'estimatedRevenue', 'estimated_revenue', 'fiscalImpact', 'fiscal_impact', 'totalEconomicImpact', 'total_economic_impact', 'annualTaxRevenue', 'annual_tax_revenue'));
+    const flat = resolveNumeric(pick(d, 'totalRevenue', 'total_revenue', 'totalTaxRevenue', 'total_tax_revenue', 'estimatedRevenue', 'estimated_revenue', 'annualTaxRevenue', 'annual_tax_revenue'));
     if (flat > 0) return flat;
-    // Try nested taxRevenue object
+    // Try nested taxRevenue object at top level
     if (taxRevenueObj && typeof taxRevenueObj === 'object') {
-      // Try specific sub-fields
-      for (const key of ['annual', 'annualRevenue', 'annual_revenue', 'total', 'totalAnnual', 'total_annual', 'postAbatement', 'post_abatement', 'propertyTax', 'property_tax', 'salesTax', 'sales_tax', 'overAbatementPeriod', 'over_abatement_period']) {
+      for (const key of ['annual', 'annualRevenue', 'annual_revenue', 'total', 'totalAnnual', 'postAbatement', 'post_abatement', 'propertyTax', 'property_tax', 'salesTax', 'overAbatementPeriod']) {
         const val = (taxRevenueObj as any)[key];
-        if (val != null) {
-          const n = resolveNumeric(val);
-          if (n > 0) return n;
-        }
+        if (val != null) { const n = resolveNumeric(val); if (n > 0) return n; }
       }
-      // Try first numeric-like value in the object
-      for (const [, v] of Object.entries(taxRevenueObj)) {
-        const n = resolveNumeric(v);
-        if (n > 0) return n;
-      }
+      for (const [, v] of Object.entries(taxRevenueObj)) { const n = resolveNumeric(v); if (n > 0) return n; }
     }
     if (typeof taxRevenueObj === 'string') return resolveNumeric(taxRevenueObj);
-    // Deep-find any revenue value anywhere in the response
-    for (const pattern of [/revenue/i, /tax.*annual/i, /fiscal/i]) {
-      const found = deepFind(d, pattern);
-      if (found != null) {
-        const n = resolveNumeric(found);
-        if (n > 0) return n;
+    // ★ Try extracting from impactAnalysis.yearX.taxRevenue (the actual API structure)
+    if (kpiYear) {
+      const yearTax = pick(kpiYear, 'taxRevenue', 'tax_revenue', 'fiscalImpact', 'fiscal_impact');
+      if (yearTax && typeof yearTax === 'object') {
+        const sum = sumYearSection(yearTax);
+        if (sum > 0) return sum;
       }
     }
     return 0;
   })();
   const taxRevenueDisplay = (() => {
     if (totalRevenue > 0) return fmtDollars(totalRevenue);
-    // Show raw string if available
     if (taxRevenueObj && typeof taxRevenueObj === 'object') {
       const s = pick(taxRevenueObj, 'annual', 'total', 'postAbatement');
       if (s && typeof s === 'string') return s;
     }
     if (typeof taxRevenueObj === 'string') return taxRevenueObj;
-    // Last resort: find any dollar string in the data
-    const anyDollar = deepFind(d, /revenue|tax/i);
-    if (typeof anyDollar === 'string' && /\$/.test(anyDollar)) return anyDollar;
     return '—';
   })();
 
@@ -115,47 +129,55 @@ export default function ScenarioPage() {
   const jobImpactObj = pick(d, 'jobImpact', 'job_impact', 'jobCreation', 'job_creation', 'employment', 'laborMarket', 'labor_market', 'jobs');
   const jobsCreated = (() => {
     // Try flat top-level
-    const flat = resolveNumeric(pick(d, 'jobsCreated', 'jobs_created', 'totalJobs', 'total_jobs', 'totalJobsCreated', 'total_jobs_created', 'directJobs', 'direct_jobs'));
+    const flat = resolveNumeric(pick(d, 'jobsCreated', 'jobs_created', 'totalJobs', 'total_jobs', 'totalJobsCreated', 'directJobs'));
     if (flat > 0) return flat;
-    // Try structured job impact object
+    // Try structured job impact object at top level
     if (jobImpactObj && typeof jobImpactObj === 'object') {
       let total = 0;
-      const cp = pick(jobImpactObj, 'constructionPhase', 'construction_phase', 'constructionJobs', 'construction_jobs', 'construction', 'temporary');
-      const op = pick(jobImpactObj, 'operationalPhase', 'operational_phase', 'permanentJobs', 'permanent_jobs', 'operational', 'permanent');
-      const sec = pick(jobImpactObj, 'secondaryJobs', 'secondary_jobs', 'indirectJobs', 'indirect_jobs', 'secondary', 'indirect');
-      for (const phase of [cp, op, sec]) {
+      for (const key of ['constructionPhase', 'construction_phase', 'constructionJobs', 'construction', 'temporary', 'operationalPhase', 'operational_phase', 'permanentJobs', 'operational', 'permanent', 'secondaryJobs', 'secondary_jobs', 'indirectJobs', 'secondary', 'indirect']) {
+        const phase = jobImpactObj[key];
         if (phase == null) continue;
         if (typeof phase === 'number') { total += phase; continue; }
-        if (typeof phase === 'object') {
-          // Handle nested: {jobs: X} or {jobs: {mean: X}} or {estimated: X} or {count: X}
-          const jobVal = phase.jobs ?? phase.mean ?? phase.estimated ?? phase.count ?? phase.total ?? phase.number;
-          total += resolveNumeric(jobVal);
-        }
+        if (typeof phase === 'object') { total += extractValue(phase.jobs ?? phase); }
       }
       if (total > 0) return total;
-      // If the object has a total/mean directly
       const directTotal = resolveNumeric(pick(jobImpactObj, 'total', 'totalJobs', 'mean'));
       if (directTotal > 0) return directTotal;
     }
-    // Deep-sum all fields named "jobs" anywhere
-    const deepJobs = deepSum(d, /^(jobs|totalJobs|jobsCreated|estimated|permanentJobs|constructionJobs|operationalJobs)$/i);
-    if (deepJobs > 0) return deepJobs;
-    // Deep-find for any job-related number
-    const foundJobs = deepFind(d, /jobs|employment|workers/i);
-    return resolveNumeric(foundJobs);
+    // ★ Try extracting from impactAnalysis.yearX.jobCreation (the actual API structure)
+    if (kpiYear) {
+      const yearJobs = pick(kpiYear, 'jobCreation', 'job_creation', 'jobImpact', 'job_impact', 'employment');
+      if (yearJobs && typeof yearJobs === 'object') {
+        const sum = sumYearSection(yearJobs);
+        if (sum > 0) return sum;
+      }
+    }
+    // If we have impact years, sum peak employment across all years
+    if (yearKeys.length > 0) {
+      let peakJobs = 0;
+      for (const yk of yearKeys) {
+        const yr = impactYears[yk];
+        const yrJobs = pick(yr, 'jobCreation', 'job_creation', 'jobImpact', 'job_impact');
+        if (yrJobs && typeof yrJobs === 'object') {
+          const sum = sumYearSection(yrJobs);
+          if (sum > peakJobs) peakJobs = sum;
+        }
+      }
+      if (peakJobs > 0) return peakJobs;
+    }
+    return 0;
   })();
 
   // --- ROI / Confidence ---
   const roi = resolveNumeric(pick(d, 'roi', 'returnOnInvestment', 'roiPercent', 'estimatedROI', 'return_on_investment', 'roi_percent', 'estimated_roi'));
-  const confidenceLevelRaw = pick(d, 'confidenceLevel', 'confidence_level', 'confidence', 'confidenceRating', 'confidence_rating', 'confidenceScore', 'confidence_score')
-    || deepFind(d, /^confidence/i);
-  // Handle when confidence is an object like {level: "Moderate", score: 0.7}
+  // Only pick explicit confidence fields — do NOT deepFind as it matches confidenceInterval95
+  const confidenceLevelRaw = pick(d, 'confidenceLevel', 'confidence_level', 'confidence', 'confidenceRating', 'confidence_rating');
   const confidenceLevel = (() => {
     if (!confidenceLevelRaw) return null;
     if (typeof confidenceLevelRaw === 'string') return confidenceLevelRaw;
     if (typeof confidenceLevelRaw === 'number') return `${confidenceLevelRaw}%`;
     if (typeof confidenceLevelRaw === 'object') {
-      return pick(confidenceLevelRaw, 'level', 'rating', 'overall', 'value', 'description', 'text', 'score', 'grade')
+      return pick(confidenceLevelRaw, 'level', 'rating', 'overall', 'description', 'text', 'grade')
         || smartText(confidenceLevelRaw);
     }
     return String(confidenceLevelRaw);
@@ -214,7 +236,7 @@ export default function ScenarioPage() {
   const utilityImpact = pick(d, 'utilityImpact', 'utility_impact', 'utilities', 'infrastructure');
   const communityBenefit = pick(d, 'communityBenefit', 'community_benefit', 'community', 'socialImpact', 'social_impact');
   const riskFactors: any[] = (() => {
-    const r = pick(d, 'riskFactors', 'risk_factors', 'risks', 'challenges', 'threats', 'concerns');
+    const r = pick(d, 'riskFactors', 'risk_factors', 'riskAssessment', 'risk_assessment', 'risks', 'challenges', 'threats', 'concerns');
     return Array.isArray(r) ? r : [];
   })();
 
@@ -232,7 +254,7 @@ export default function ScenarioPage() {
     'jobImpact', 'job_impact', 'laborMarket', 'labor_market', 'housingImpact', 'housing_impact', 'housing', 'realEstate', 'real_estate',
     'utilityImpact', 'utility_impact', 'utilities', 'infrastructure',
     'communityBenefit', 'community_benefit', 'community', 'socialImpact', 'social_impact',
-    'riskFactors', 'risk_factors', 'risks', 'challenges', 'threats', 'concerns',
+    'riskFactors', 'risk_factors', 'riskAssessment', 'risk_assessment', 'risks', 'challenges', 'threats', 'concerns',
     'scenarioResult', 'simulation', 'scenario', 'data', 'modelUsed', 'model_used',
     'confidenceLevel', 'confidence_level', 'confidence', 'confidenceRating', 'confidence_rating', 'confidenceScore', 'confidence_score',
     'assumptions', 'keyAssumptions', 'key_assumptions', 'modelAssumptions', 'model_assumptions',
@@ -242,6 +264,8 @@ export default function ScenarioPage() {
     // Monte Carlo meta fields
     'simulationId', 'simulation_id', 'simulationName', 'simulation_name', 'simulationEngine', 'simulation_engine', 'timestamp',
     'analysisHorizonsYears', 'analysis_horizons_years', 'contextualInvestments', 'contextual_investments',
+    'scenarioID', 'scenario_id', 'communityBenefitAgreementRecommendations', 'community_benefit_agreement_recommendations',
+    'comparableCityAnalysis', 'comparable_city_analysis',
   ]);
 
   /** Flatten a nested year object to get just the `mean` values for charting */
@@ -361,50 +385,59 @@ export default function ScenarioPage() {
                 <StatCard label={multiplier > 0 ? "Multiplier" : riskFactors.length > 0 ? "Risk Factors" : assumptions.length > 0 ? "Assumptions" : "Impact Areas"} value={multiplier > 0 ? `${multiplier}x` : riskFactors.length > 0 ? String(riskFactors.length) : assumptions.length > 0 ? String(assumptions.length) : '—'} icon={<Building className="w-4 h-4" />} color="text-amber-400" />
               </div>
 
-              {/* Executive Summary — at-a-glance key findings */}
-              {(narrative || (riskFactors.length > 0) || jobImpact || housingImpact) && (
+              {/* Executive Summary — at-a-glance key findings from impactAnalysis */}
+              {(kpiYear || riskFactors.length > 0 || jobImpact || housingImpact) && (
                 <div className="glass-card p-5 border-l-4 border-l-compass-500 bg-compass-500/5">
                   <h3 className="text-sm font-semibold text-compass-300 mb-3">Key Findings</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {jobImpact && typeof jobImpact === 'object' && (() => {
-                      const cp = pick(jobImpact, 'constructionPhase', 'construction_phase', 'construction');
-                      const op = pick(jobImpact, 'operationalPhase', 'operational_phase', 'operational');
-                      const cpJobs = cp ? resolveNumeric(typeof cp === 'object' ? (cp.jobs ?? cp.estimated ?? cp.count ?? cp) : cp) : 0;
-                      const opJobs = op ? resolveNumeric(typeof op === 'object' ? (op.jobs ?? op.estimated ?? op.count ?? op) : op) : 0;
-                      return (cpJobs > 0 || opJobs > 0) ? (
+                    {/* Job Creation summary from impactAnalysis or top-level */}
+                    {(() => {
+                      // Try impactAnalysis year data first
+                      const yearJobs = kpiYear ? pick(kpiYear, 'jobCreation', 'job_creation', 'jobImpact', 'job_impact') : null;
+                      const jObj = yearJobs || jobImpact;
+                      if (!jObj || typeof jObj !== 'object') return null;
+                      const cpKey = Object.keys(jObj).find(k => /construct|temporary/i.test(k));
+                      const opKey = Object.keys(jObj).find(k => /operat|permanent/i.test(k));
+                      const secKey = Object.keys(jObj).find(k => /secondary|indirect/i.test(k));
+                      const cpJobs = cpKey ? extractValue(jObj[cpKey]) : 0;
+                      const opJobs = opKey ? extractValue(jObj[opKey]) : 0;
+                      const secJobs = secKey ? extractValue(jObj[secKey]) : 0;
+                      return (cpJobs > 0 || opJobs > 0 || secJobs > 0) ? (
                         <div className="p-3 bg-slate-800/30 rounded-lg">
                           <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Job Creation</div>
-                          {cpJobs > 0 && <div className="text-sm text-slate-300"><strong className="text-blue-400">{cpJobs.toLocaleString()}</strong> construction jobs</div>}
-                          {opJobs > 0 && <div className="text-sm text-slate-300"><strong className="text-emerald-400">{opJobs.toLocaleString()}</strong> permanent jobs</div>}
+                          {cpJobs > 0 && <div className="text-sm text-slate-300"><strong className="text-blue-400">{cpJobs.toLocaleString()}</strong> construction</div>}
+                          {opJobs > 0 && <div className="text-sm text-slate-300"><strong className="text-emerald-400">{opJobs.toLocaleString()}</strong> permanent</div>}
+                          {secJobs > 0 && <div className="text-sm text-slate-300"><strong className="text-purple-400">{secJobs.toLocaleString()}</strong> secondary/indirect</div>}
                         </div>
                       ) : null;
                     })()}
-                    {housingImpact && typeof housingImpact === 'object' && (() => {
-                      const price = pick(housingImpact, 'priceChangeNearSite', 'price_change_near_site', 'priceChange', 'price_change');
-                      const risk = pick(housingImpact, 'displacementRisk', 'displacement_risk', 'displacement');
-                      return (price || risk) ? (
+                    {/* Housing Impact */}
+                    {(() => {
+                      const yearHousing = kpiYear ? pick(kpiYear, 'housingMarket', 'housing_market', 'housingImpact', 'housing_impact') : null;
+                      const hObj = yearHousing || housingImpact;
+                      if (!hObj || typeof hObj !== 'object') return null;
+                      const entries = Object.entries(hObj).filter(([, v]) => v != null).slice(0, 3);
+                      return entries.length > 0 ? (
                         <div className="p-3 bg-slate-800/30 rounded-lg">
                           <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Housing Impact</div>
-                          {price && <div className="text-sm text-slate-300">{String(price)}</div>}
-                          {risk && <div className="text-sm text-amber-400 text-xs mt-0.5">Displacement risk: {String(risk)}</div>}
+                          {entries.map(([k, v]) => (
+                            <div key={k} className="text-sm text-slate-300">{labelify(k)}: <strong className="text-amber-400">{typeof v === 'object' ? `${extractValue(v)}%` : String(v)}</strong></div>
+                          ))}
                         </div>
                       ) : null;
                     })()}
-                    {taxRevenueObj && typeof taxRevenueObj === 'object' && (() => {
-                      const annual = pick(taxRevenueObj, 'annual', 'annualRevenue', 'annual_revenue');
-                      const post = pick(taxRevenueObj, 'postAbatement', 'post_abatement', 'postAbatementAnnual');
-                      return (annual || post) ? (
-                        <div className="p-3 bg-slate-800/30 rounded-lg">
-                          <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Tax Revenue</div>
-                          {annual && <div className="text-sm text-slate-300">Annual: <strong className="text-emerald-400">{String(annual)}</strong></div>}
-                          {post && <div className="text-sm text-slate-300">Post-abatement: <strong className="text-emerald-400">{String(post)}</strong></div>}
-                        </div>
-                      ) : null;
-                    })()}
+                    {/* Tax Revenue */}
+                    {totalRevenue > 0 && (
+                      <div className="p-3 bg-slate-800/30 rounded-lg">
+                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Tax Revenue (Year 5)</div>
+                        <div className="text-xl font-bold text-emerald-400">{fmtDollars(totalRevenue)}</div>
+                      </div>
+                    )}
+                    {/* Top Risk */}
                     {riskFactors.length > 0 && (
                       <div className="p-3 bg-slate-800/30 rounded-lg">
-                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Top Risk</div>
-                        <div className="text-sm text-amber-300">{typeof riskFactors[0] === 'string' ? riskFactors[0].slice(0, 120) : (pick(riskFactors[0], 'description', 'text', 'risk', 'factor', 'name') || smartText(riskFactors[0])).slice(0, 120)}</div>
+                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Top Risk ({riskFactors.length} total)</div>
+                        <div className="text-sm text-amber-300">{typeof riskFactors[0] === 'string' ? riskFactors[0].slice(0, 120) : (pick(riskFactors[0], 'description', 'text', 'risk', 'factor', 'name', 'title') || smartText(riskFactors[0])).slice(0, 120)}</div>
                       </div>
                     )}
                   </div>
@@ -545,12 +578,25 @@ export default function ScenarioPage() {
                 <div className="glass-card p-6 border-l-4 border-l-amber-500 bg-amber-500/5">
                   <h3 className="text-sm font-semibold text-amber-400 mb-3">Risk Factors</h3>
                   <div className="space-y-2">
-                    {riskFactors.map((r: any, i: number) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <span className="text-amber-500 mt-0.5">⚠</span>
-                        <p className="text-sm text-slate-300 leading-relaxed">{typeof r === 'string' ? r : (pick(r, 'description', 'text', 'risk', 'factor', 'name', 'title') || smartText(r))}</p>
-                      </div>
-                    ))}
+                    {riskFactors.map((r: any, i: number) => {
+                      const riskText = typeof r === 'string' ? r : (pick(r, 'description', 'text', 'risk', 'factor', 'name', 'title') || smartText(r));
+                      const riskTitle = typeof r === 'object' ? pick(r, 'risk', 'name', 'title', 'category') : null;
+                      const probability = typeof r === 'object' ? pick(r, 'probability', 'likelihood') : null;
+                      const mitigation = typeof r === 'object' ? pick(r, 'mitigationStrategy', 'mitigation_strategy', 'mitigation', 'recommendation') : null;
+                      return (
+                        <div key={i} className="p-3 bg-slate-800/20 rounded-lg border border-amber-500/10">
+                          <div className="flex items-start gap-2">
+                            <span className="text-amber-500 mt-0.5">⚠</span>
+                            <div className="flex-1">
+                              {riskTitle && riskTitle !== riskText && <p className="text-sm font-semibold text-amber-300 mb-1">{riskTitle}</p>}
+                              <p className="text-sm text-slate-300 leading-relaxed">{riskText}</p>
+                              {probability && <p className="text-xs text-slate-500 mt-1">Probability: {probability}</p>}
+                              {mitigation && <p className="text-xs text-emerald-400 mt-1">Mitigation: {mitigation}</p>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
