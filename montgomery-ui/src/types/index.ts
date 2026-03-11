@@ -509,3 +509,52 @@ export interface CouncilDistrict {
   council_member?: string;
   [key: string]: unknown;
 }
+
+// ── Citizen Portal ──
+export interface CitizenAlert {
+  alert_id: string;
+  title: string;
+  summary: string;
+  severity: string;
+  district_id?: number | null;
+  what_city_is_doing?: string | null;
+  updated_at?: string | null;
+}
+
+export interface CitizenCondition {
+  module: string;
+  title: string;
+  summary: string;
+  why_it_matters: string;
+  what_city_is_doing?: string | null;
+  how_we_know: string[];
+}
+
+export interface CitizenAction {
+  title: string;
+  detail: string;
+  category: string;
+}
+
+export interface CitizenOverview {
+  generated_at: string;
+  resident_context: {
+    full_name: string;
+    neighborhood_name?: string | null;
+    district_id?: number | null;
+    postal_code?: string | null;
+  };
+  city_status_summary: string;
+  assistant_starter_questions: string[];
+  neighborhood_conditions: CitizenCondition[];
+  approved_alerts: CitizenAlert[];
+  city_actions: CitizenAction[];
+  resident_guidance: string[];
+  ai_explainer: {
+    question: string;
+    answer: string;
+    reasoning: string[];
+    freshness_note: string;
+    sources_used: { label: string; role: string; freshness?: string | null }[];
+  };
+}

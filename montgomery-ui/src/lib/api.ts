@@ -273,6 +273,14 @@ export const geo = {
 };
 
 // ═══════════════════════════════════════
+// CITIZEN
+// ═══════════════════════════════════════
+export const citizen = {
+  overview: () =>
+    get<{ data: import('@/types').CitizenOverview }>('/citizen/overview'),
+};
+
+// ═══════════════════════════════════════
 // HEALTH
 // ═══════════════════════════════════════
 export const health = {
@@ -280,4 +288,4 @@ export const health = {
 };
 
 export { ApiError };
-export default { auth, command, sentinel, youthshield, blight, compass, ai, geo, health };
+export default { auth, command, sentinel, youthshield, blight, compass, ai, geo, citizen, health };
