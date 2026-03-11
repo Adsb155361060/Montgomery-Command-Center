@@ -8,14 +8,14 @@ interface ThemeCtx {
   isDark: boolean;
 }
 
-const ThemeContext = createContext<ThemeCtx>({ theme: 'dark', toggle: () => {}, isDark: true });
+const ThemeContext = createContext<ThemeCtx>({ theme: 'light', toggle: () => {}, isDark: false });
 
 const STORAGE_KEY = 'mcc_theme';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    return stored === 'light' || stored === 'dark' ? stored : 'dark';
+    return stored === 'light' || stored === 'dark' ? stored : 'light';
   });
 
   useEffect(() => {
