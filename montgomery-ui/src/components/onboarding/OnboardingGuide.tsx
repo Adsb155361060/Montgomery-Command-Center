@@ -157,7 +157,7 @@ export default function OnboardingGuide() {
     }
   }, []);
 
-  // Position the card next to the highlighted sidebar group
+  // Scroll the sidebar target into view, then position the card next to it
   useEffect(() => {
     const step = STEPS[currentStep];
     if (!step.sidebarTarget) {
@@ -166,12 +166,17 @@ export default function OnboardingGuide() {
     }
     const el = document.querySelector(`[data-tour="${step.sidebarTarget}"]`);
     if (el) {
-      const rect = el.getBoundingClientRect();
-      // Center the card vertically relative to the sidebar group, clamped to viewport
-      const cardHeight = 340;
-      let top = rect.top + rect.height / 2 - cardHeight / 2;
-      top = Math.max(16, Math.min(top, window.innerHeight - cardHeight - 16));
-      setCardPos({ top });
+      // Scroll the sidebar so the target section is visible
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Wait for the scroll to settle before measuring position
+      const timer = setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        const cardHeight = 340;
+        let top = rect.top + rect.height / 2 - cardHeight / 2;
+        top = Math.max(16, Math.min(top, window.innerHeight - cardHeight - 16));
+        setCardPos({ top });
+      }, 300);
+      return () => clearTimeout(timer);
     } else {
       setCardPos(null);
     }
