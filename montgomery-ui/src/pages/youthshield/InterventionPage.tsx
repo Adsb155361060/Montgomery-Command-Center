@@ -3,9 +3,8 @@ import { useBackgroundAction } from '@/hooks/useBackgroundAction';
 import { youthshield } from '@/lib/api';
 import { ModuleHeader, StatCard } from '@/components/shared';
 import { Markdown } from '@/components/shared/Markdown';
-import { AdaptiveRenderer, pick, labelify, SmartValue, smartText, sanitizeH3, isH3Hex } from '@/components/shared/AdaptiveRenderer';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Shield, Zap, RefreshCw, DollarSign, Users, TrendingDown, Clock } from 'lucide-react';
+import { pick, labelify, sanitizeH3, isH3Hex } from '@/components/shared/AdaptiveRenderer';
+import { Shield, Zap, RefreshCw, DollarSign, Users, MapPin, Clock, AlertTriangle, CheckCircle2, Building2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 const MONTGOMERY_NEIGHBORHOODS = [
@@ -21,6 +20,161 @@ const MONTGOMERY_NEIGHBORHOODS = [
   { value: '9', label: 'District 9 — Eastern Boulevard / AUM' },
 ];
 
+const INTERVENTION_TYPES = [
+  { value: 'mentorship', label: 'Mentorship Program', icon: Users, desc: 'Pair at-risk youth with trained mentors' },
+  { value: 'after_school', label: 'After-School Programs', icon: Clock, desc: 'Extended learning and activity programs' },
+  { value: 'job_training', label: 'Job Training', icon: DollarSign, desc: 'Vocational training and employment pathways' },
+  { value: 'community_policing', label: 'Community Policing', icon: Shield, desc: 'Increased community engagement patrols' },
+  { value: 'crisis_intervention', label: 'Crisis Intervention', icon: Zap, desc: 'Immediate response teams for at-risk situations' },
+];
+
+/* ═══════════════════════════════════════════
+   Normalize AI response into consistent shape
+   Handles ALL observed AI response formats
+   ═══════════════════════════════════════════ */
+interface NormalizedZone {
+  zoneName: string;
+  riskLevel: string;
+  programs: NormalizedProgram[];
+}
+interface NormalizedProgram {
+  program: string;
+  type: string;
+  deploymentPoint: string;
+  timeSlot: string;
+  provider: string;
+  providerNotes: string;
+  urgency: string;
+  distance: string;
+  alternativeProvider: string;
+}
+
+function normalizeResponse(raw: any): {
+  zones: NormalizedZone[];
+  coverageGaps: string[];
+  coordinationNotes: string;
+  totalPrograms: number;
+  uniqueProviders: string[];
+  urgentCount: number;
+} {
+  if (!raw || typeof raw !== 'object') return { zones: [], coverageGaps: [], coordinationNotes: '', totalPrograms: 0, uniqueProviders: [], urgentCount: 0 };
+
+  // Unwrap nested envelopes
+  const d = raw.interventionPlan || raw.intervention_plan || raw.plan || raw.data?.interventionPlan || raw.data?.intervention_plan || raw.data || raw;
+
+  let zones: NormalizedZone[] = [];
+
+  // FORMAT A: intervention_plan[] — each item is a zone with nested interventions[]
+  const planArray = Array.isArray(d) ? d
+    : Array.isArray(d.intervention_plan) ? d.intervention_plan
+    : Array.isArray(d.interventionPlan) ? d.interventionPlan
+    : Array.isArray(d.routing_plan) ? d.routing_plan
+    : Array.isArray(d.routingPlan) ? d.routingPlan
+    : null;
+
+  if (planArray && planArray.length > 0 && planArray[0] && typeof planArray[0] === 'object') {
+    const firstItem = planArray[0];
+    const hasNestedInterventions = Array.isArray(firstItem.interventions) || Array.isArray(firstItem.programs) || Array.isArray(firstItem.activities);
+
+    if (hasNestedInterventions) {
+      // Nested format: each item = a zone with programs inside
+      zones = planArray.map((zoneItem: any) => {
+        const zoneId = String(pick(zoneItem, 'zone_h3_index', 'zoneH3Index', 'zone', 'zoneH3', 'h3Index', 'h3_index', 'area', 'location') || 'Unknown');
+        const zoneName = isH3Hex(zoneId) ? sanitizeH3(zoneId) : zoneId;
+        const riskLevel = String(pick(zoneItem, 'risk_level', 'riskLevel', 'urgency', 'priority', 'severity') || '');
+        const nested = zoneItem.interventions || zoneItem.programs || zoneItem.activities || [];
+
+        const programs: NormalizedProgram[] = (Array.isArray(nested) ? nested : []).map((p: any) => normalizeProgram(p));
+        return { zoneName, riskLevel, programs };
+      });
+    } else {
+      // FORMAT B: flat interventions[] — each item IS a program
+      const programs = planArray.map((p: any) => normalizeProgram(p));
+      // Group by zone
+      const byZone = new Map<string, NormalizedProgram[]>();
+      for (const p of programs) {
+        const key = p.deploymentPoint || 'Citywide';
+        if (!byZone.has(key)) byZone.set(key, []);
+        byZone.get(key)!.push(p);
+      }
+      zones = [...byZone.entries()].map(([name, progs]) => ({
+        zoneName: name,
+        riskLevel: progs[0]?.urgency || '',
+        programs: progs,
+      }));
+    }
+  }
+
+  // Also try top-level flat interventions[] if zones is still empty
+  if (zones.length === 0) {
+    const flatArr = Array.isArray(d.interventions) ? d.interventions
+      : Array.isArray(d.recommendations) ? d.recommendations
+      : Array.isArray(d.strategies) ? d.strategies
+      : null;
+
+    if (flatArr && flatArr.length > 0) {
+      const programs = flatArr.map((p: any) => typeof p === 'string'
+        ? { program: p, type: '', deploymentPoint: '', timeSlot: '', provider: '', providerNotes: '', urgency: '', distance: '', alternativeProvider: '' }
+        : normalizeProgram(p)
+      );
+      zones = [{ zoneName: 'Intervention Plan', riskLevel: '', programs }];
+    }
+  }
+
+  // Coverage gaps
+  const gapsRaw = pick(d, 'coverageGaps', 'coverage_gaps', 'gaps', 'riskAreas', 'challenges') || pick(raw, 'coverageGaps', 'coverage_gaps', 'gaps');
+  const coverageGaps: string[] = Array.isArray(gapsRaw) ? gapsRaw.map((g: any) => typeof g === 'string' ? g : pick(g, 'text', 'description', 'gap', 'area') || JSON.stringify(g)) : [];
+
+  // Coordination notes
+  const coordRaw = pick(d, 'coordinationNotes', 'coordination_notes', 'coordination', 'notes', 'partnerships') || pick(raw, 'coordinationNotes', 'coordination_notes', 'coordination');
+  const coordinationNotes = typeof coordRaw === 'string' ? coordRaw : (coordRaw && typeof coordRaw === 'object' ? Object.values(coordRaw).filter(v => typeof v === 'string').join('\n\n') : '');
+
+  // Compute stats
+  const allPrograms = zones.flatMap(z => z.programs);
+  const totalPrograms = allPrograms.length;
+  const uniqueProviders = [...new Set(allPrograms.map(p => p.provider || p.program).filter(Boolean))];
+  const urgentCount = zones.filter(z => {
+    const r = z.riskLevel.toLowerCase();
+    return r.includes('critical') || r.includes('high') || r.includes('urgent') || r.includes('immediate');
+  }).length;
+
+  return { zones, coverageGaps, coordinationNotes: sanitizeH3(coordinationNotes), totalPrograms, uniqueProviders, urgentCount };
+}
+
+function normalizeProgram(p: any): NormalizedProgram {
+  if (typeof p === 'string') return { program: p, type: '', deploymentPoint: '', timeSlot: '', provider: '', providerNotes: '', urgency: '', distance: '', alternativeProvider: '' };
+  return {
+    program: String(pick(p, 'program', 'name', 'title', 'recommendedIntervention', 'recommended_intervention', 'intervention') || ''),
+    type: String(pick(p, 'type', 'category', 'interventionType', 'intervention_type') || ''),
+    deploymentPoint: sanitizeH3(String(pick(p, 'deploymentPoint', 'deployment_point', 'location', 'venue', 'center', 'site') || '')),
+    timeSlot: String(pick(p, 'timeSlot', 'time_slot', 'time', 'schedule', 'hours') || ''),
+    provider: String(pick(p, 'provider', 'organization', 'agency', 'partner') || ''),
+    providerNotes: sanitizeH3(String(pick(p, 'providerNotes', 'provider_notes', 'notes', 'description', 'details', 'rationale') || '')),
+    urgency: String(pick(p, 'urgency', 'priority', 'risk_level', 'riskLevel', 'level') || ''),
+    distance: String(pick(p, 'distanceToZone', 'distance_to_zone', 'distance') || ''),
+    alternativeProvider: String(pick(p, 'alternativeProvider', 'alternative_provider', 'alternative', 'backup') || ''),
+  };
+}
+
+function riskColor(level: string): string {
+  const l = level.toLowerCase();
+  if (l.includes('critical') || l.includes('extreme')) return 'text-red-500 bg-red-500/15 border-red-500/30';
+  if (l.includes('high') || l.includes('urgent')) return 'text-orange-400 bg-orange-500/15 border-orange-500/30';
+  if (l.includes('medium') || l.includes('moderate')) return 'text-amber-400 bg-amber-500/15 border-amber-500/30';
+  return 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30';
+}
+
+function riskBorder(level: string): string {
+  const l = level.toLowerCase();
+  if (l.includes('critical') || l.includes('extreme')) return 'border-l-red-500';
+  if (l.includes('high') || l.includes('urgent')) return 'border-l-orange-500';
+  if (l.includes('medium') || l.includes('moderate')) return 'border-l-amber-500';
+  return 'border-l-youthshield-500';
+}
+
+/* ═══════════════════════════════════════════
+   Component
+   ═══════════════════════════════════════════ */
 export default function InterventionPage() {
   const [form, setForm] = useState({ district: '', interventionType: 'mentorship' });
   const action = useBackgroundAction('Run Intervention Model', youthshield.intervention);
@@ -33,106 +187,16 @@ export default function InterventionPage() {
     });
   };
 
-  const interventionTypes = [
-    { value: 'mentorship', label: 'Mentorship Program', icon: Users, desc: 'Pair at-risk youth with trained mentors' },
-    { value: 'after_school', label: 'After-School Programs', icon: Clock, desc: 'Extended learning and activity programs' },
-    { value: 'job_training', label: 'Job Training', icon: DollarSign, desc: 'Vocational training and employment pathways' },
-    { value: 'community_policing', label: 'Community Policing', icon: Shield, desc: 'Increased community engagement patrols' },
-    { value: 'crisis_intervention', label: 'Crisis Intervention', icon: Zap, desc: 'Immediate response teams for at-risk situations' },
-  ];
-
   const raw = action.data as any;
-  // Unwrap: AI might return data at various nesting levels
-  const d = raw?.interventionPlan || raw?.plan || raw?.data?.interventionPlan || raw?.data || raw;
-  const hasData = d && typeof d === 'object' && Object.keys(d).length > 0;
-
-  /* ─── Resilient field extraction ─── */
-
-  // Implementation steps — try many field names
-  const steps: any[] =
-    pick(d, 'implementationSteps', 'steps', 'implementationPlan', 'plan', 'phases', 'actionItems', 'actions', 'milestones') || [];
-  const stepsArr = Array.isArray(steps) ? steps : [];
-
-  // Interventions array (from API route type) — includes routing_plan format
-  const interventions: any[] = pick(d, 'interventions', 'interventionRouting', 'assignedInterventions', 'routing_plan', 'routingPlan', 'programs', 'recommendations', 'strategies') || [];
-  const interventionsArr = Array.isArray(interventions) ? interventions : [];
-
-  // ─── Derived stats from actual data ───
-  const estReduction = Number(pick(d, 'estimatedReduction', 'reductionPercent', 'reduction', 'estimatedImpact', 'impactPercent', 'crimeReduction')) || 0;
-
-  // Cost: try top-level, then sum from interventions
-  let annualCost = Number(pick(d, 'annualCost', 'cost', 'totalCost', 'estimatedCost', 'budget', 'annualBudget', 'annual_cost', 'total_cost', 'estimated_cost')) || 0;
-  if (!annualCost && interventionsArr.length > 0) {
-    annualCost = interventionsArr.reduce((sum: number, it: any) => {
-      const c = Number(pick(it, 'estimatedCost', 'estimated_cost', 'cost', 'budget', 'amount'));
-      return sum + (isFinite(c) ? c : 0);
-    }, 0);
-  }
-
-  const youthReached = Number(pick(d, 'youthReached', 'estimatedYouth', 'participants', 'targetYouth', 'youthServed', 'totalParticipants')) || 0;
-  const timelineVal = pick(d, 'timelineMonths', 'timeline', 'duration', 'implementationTimeline', 'months');
-
-  // Compute from interventions array — handle both flat and routing_plan (nested programs[]) format
-  const highUrgencyCount = interventionsArr.filter((it: any) => {
-    const u = String(pick(it, 'urgency', 'priority', 'level', 'risk_level', 'riskLevel') || '').toLowerCase();
-    return u.includes('high') || u.includes('critical') || u.includes('urgent') || u.includes('immediate');
-  }).length;
-  // Providers: check top-level provider AND nested programs[].provider
-  const allProviders: string[] = [];
-  interventionsArr.forEach((it: any) => {
-    const p = pick(it, 'provider', 'organization', 'agency', 'partner');
-    if (p) allProviders.push(String(p));
-    const progs = it.programs ?? it.activities ?? [];
-    if (Array.isArray(progs)) progs.forEach((pr: any) => {
-      const pp = pr?.provider ?? pr?.organization;
-      if (pp) allProviders.push(String(pp));
-    });
-  });
-  const uniqueProviders = [...new Set(allProviders.filter(Boolean))];
-  const uniqueTimeSlots = [...new Set(interventionsArr.map((it: any) =>
-    String(pick(it, 'timeSlot', 'time_slot', 'timeSlots', 'schedule', 'time') || '')).filter(Boolean))];
-
-  // Stat values: use top-level fields if present, otherwise derive from interventions array
-  const statInterventions = interventionsArr.length || stepsArr.length;
-  const statCost = annualCost > 0 ? formatCurrency(annualCost)
-    : interventionsArr.length > 0 ? `${interventionsArr.length} Programs` : hasData ? 'N/A' : '—';
-  const statProviders = uniqueProviders.length > 0 ? `${uniqueProviders.length}` : (youthReached > 0 ? String(youthReached) : hasData ? 'N/A' : '—');
-  const statTimeline = typeof timelineVal === 'number' ? `${timelineVal}mo`
-    : timelineVal ? String(timelineVal)
-    : uniqueTimeSlots.length > 0 ? `${uniqueTimeSlots.length} Slots`
-    : highUrgencyCount > 0 ? `${highUrgencyCount} Urgent` : hasData ? 'N/A' : '—';
-
-  // Cost breakdown
-  const breakdown = pick(d, 'breakdown', 'costBreakdown', 'budgetBreakdown', 'costs');
-
-  // Justification / narrative / coverage gaps / coordination
-  const justification = pick(d, 'justification', 'narrative', 'rationale', 'summary', 'analysis', 'explanation');
-  const coverageGaps: any[] = (() => {
-    const g = pick(d, 'coverageGaps', 'gaps', 'riskAreas', 'challenges');
-    return Array.isArray(g) ? g : [];
-  })();
-  const coordination = pick(d, 'coordinationNotes', 'coordination', 'partnerships', 'notes');
-
-  // Keys we handle explicitly
-  const handledKeys = new Set([
-    'estimatedReduction', 'reductionPercent', 'reduction', 'estimatedImpact', 'impactPercent', 'crimeReduction',
-    'annualCost', 'cost', 'totalCost', 'estimatedCost', 'budget', 'annualBudget',
-    'youthReached', 'estimatedYouth', 'participants', 'targetYouth', 'youthServed', 'totalParticipants',
-    'timelineMonths', 'timeline', 'duration', 'implementationTimeline', 'months',
-    'implementationSteps', 'steps', 'implementationPlan', 'plan', 'phases', 'actionItems', 'actions', 'milestones',
-    'interventions', 'interventionRouting', 'assignedInterventions', 'routing_plan', 'routingPlan', 'programs', 'recommendations', 'strategies',
-    'breakdown', 'costBreakdown', 'budgetBreakdown', 'costs',
-    'justification', 'narrative', 'rationale', 'summary', 'analysis', 'explanation',
-    'coverageGaps', 'gaps', 'riskAreas', 'challenges',
-    'coordinationNotes', 'coordination', 'partnerships', 'notes',
-    'interventionPlan', 'data',
-  ]);
+  const result = raw ? normalizeResponse(raw) : null;
+  const hasData = result && result.zones.length > 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <ModuleHeader title="Intervention Designer" subtitle="Model privacy-preserving youth violence interventions for specific zones" accentColor="bg-youthshield-500" icon={<Shield className="w-6 h-6" />} />
+      <ModuleHeader title="Intervention Designer" subtitle="AI-powered intervention routing for youth violence prevention zones" accentColor="bg-youthshield-500" icon={<Shield className="w-6 h-6" />} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ─── Config Form ─── */}
         <form onSubmit={handleSubmit} className="glass-card p-6 lg:col-span-1 space-y-5">
           <h3 className="text-sm font-semibold text-slate-300 mb-2">Configure Intervention</h3>
 
@@ -149,7 +213,7 @@ export default function InterventionPage() {
           <div>
             <label className="block text-xs text-slate-400 mb-2">Intervention Type</label>
             <div className="space-y-2">
-              {interventionTypes.map(t => {
+              {INTERVENTION_TYPES.map(t => {
                 const Icon = t.icon;
                 return (
                   <label key={t.value} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${form.interventionType === t.value ? 'border-youthshield-500/50 bg-youthshield-500/5' : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600'}`}>
@@ -177,163 +241,117 @@ export default function InterventionPage() {
           )}
         </form>
 
+        {/* ─── Results ─── */}
         <div className="lg:col-span-2 space-y-6">
-          {hasData ? (
+          {hasData && result ? (
             <>
-              {/* Stats */}
+              {/* Stats Strip */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label={estReduction > 0 ? "Est. Reduction" : "Interventions"} value={estReduction > 0 ? `${estReduction}%` : statInterventions > 0 ? statInterventions : '—'} icon={<TrendingDown className="w-4 h-4" />} color="text-emerald-400" />
-                <StatCard label="Annual Cost" value={statCost} icon={<DollarSign className="w-4 h-4" />} color="text-amber-400" />
-                <StatCard label="Providers" value={statProviders} icon={<Users className="w-4 h-4" />} color="text-youthshield-400" />
-                <StatCard label={uniqueTimeSlots.length > 0 ? "Time Slots" : highUrgencyCount > 0 ? "Priority" : "Timeline"} value={statTimeline} icon={<Clock className="w-4 h-4" />} color="text-blight-400" />
+                <StatCard label="Risk Zones" value={result.zones.length} icon={<MapPin className="w-4 h-4" />} color="text-red-400" />
+                <StatCard label="Programs" value={result.totalPrograms} icon={<Shield className="w-4 h-4" />} color="text-youthshield-400" />
+                <StatCard label="Providers" value={result.uniqueProviders.length} icon={<Users className="w-4 h-4" />} color="text-amber-400" />
+                <StatCard label="Urgent Zones" value={result.urgentCount} icon={<AlertTriangle className="w-4 h-4" />} color="text-orange-400" />
               </div>
 
-              {/* Implementation Steps */}
-              {stepsArr.length > 0 && (
-                <div className="glass-card p-6">
-                  <h3 className="text-sm font-semibold text-slate-300 mb-4">Implementation Plan</h3>
-                  <div className="space-y-3">
-                    {stepsArr.map((step: any, i: number) => {
-                      const stepText = typeof step === 'string' ? step
-                        : pick(step, 'description', 'text', 'step', 'action', 'name', 'title') || smartText(step);
-                      const stepTimeline = typeof step === 'object' ? pick(step, 'timeline', 'duration', 'timeframe', 'when') : null;
-                      const stepCost = typeof step === 'object' ? pick(step, 'cost', 'budget', 'amount') : null;
-                      const stepHandled = new Set(['description', 'text', 'step', 'action', 'name', 'title', 'timeline', 'duration', 'timeframe', 'when', 'cost', 'budget', 'amount']);
-                      const extraFields = typeof step === 'object' ? Object.entries(step).filter(([k, v]) => !stepHandled.has(k) && v != null && v !== '') : [];
-                      return (
-                        <div key={i} className="flex gap-3 items-start">
-                          <div className="w-7 h-7 rounded-full bg-youthshield-500/20 flex items-center justify-center text-xs font-bold text-youthshield-400 flex-shrink-0">{i + 1}</div>
-                          <div className="flex-1 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
-                            <p className="text-sm text-slate-300">{stepText}</p>
-                            <div className="flex flex-wrap gap-3 mt-1.5">
-                              {stepTimeline && <span className="text-xs text-slate-500">⏱ {stepTimeline}</span>}
-                              {stepCost && <span className="text-xs text-amber-400">💰 {typeof stepCost === 'number' ? formatCurrency(stepCost) : stepCost}</span>}
-                            </div>
-                            {extraFields.length > 0 && (
-                              <div className="mt-2 space-y-0.5">
-                                {extraFields.map(([k, v]) => (
-                                  <div key={k} className="text-sm text-slate-500">
-                                    <span className="font-medium">{labelify(k)}:</span> <span className="text-slate-400">{typeof v === 'object' ? <SmartValue label={k} value={v} /> : String(v)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+              {/* Zone Cards */}
+              <div className="space-y-4">
+                {result.zones.map((zone, zi) => (
+                  <div key={zi} className={`glass-card border-l-4 ${riskBorder(zone.riskLevel)} overflow-hidden`}>
+                    {/* Zone Header */}
+                    <div className="px-5 py-3.5 border-b border-slate-700/30 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-youthshield-500/15 flex items-center justify-center">
+                          <MapPin className="w-4 h-4 text-youthshield-400" />
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-200">{sanitizeH3(zone.zoneName)}</h4>
+                          <p className="text-xs text-slate-500">{zone.programs.length} program{zone.programs.length !== 1 ? 's' : ''} assigned</p>
+                        </div>
+                      </div>
+                      {zone.riskLevel && (
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border ${riskColor(zone.riskLevel)}`}>
+                          {zone.riskLevel}
+                        </span>
+                      )}
+                    </div>
 
-              {/* Interventions list (from API route structure) */}
-              {interventionsArr.length > 0 && (
-                <div className="glass-card p-6">
-                  <h3 className="text-sm font-semibold text-slate-300 mb-4">Intervention Programs</h3>
-                  <div className="space-y-3">
-                    {interventionsArr.map((item: any, i: number) => {
-                      if (typeof item === 'string') {
-                        return (
-                          <div key={i} className="flex gap-3 items-start">
-                            <span className="w-6 h-6 rounded-full bg-youthshield-500/20 flex items-center justify-center text-xs font-bold text-youthshield-400 flex-shrink-0">{i + 1}</span>
-                            <Markdown size="sm">{item}</Markdown>
-                          </div>
-                        );
-                      }
-                      const title = pick(item, 'name', 'title', 'program', 'type', 'intervention', 'recommendedIntervention', 'deployment_point', 'deploymentPoint') || `Program ${i + 1}`;
-                      const desc = pick(item, 'description', 'text', 'details', 'rationale', 'summary', 'notes');
-                      const target = pick(item, 'targetPopulation', 'target', 'audience', 'participants');
-                      const cost = pick(item, 'estimatedCost', 'estimated_cost', 'cost', 'budget', 'amount');
-                      const provider = pick(item, 'provider', 'organization', 'agency', 'partner');
-                      const timeSlot = pick(item, 'timeSlot', 'time_slot', 'timeSlots', 'schedule', 'time');
-                      const urgency = pick(item, 'urgency', 'priority', 'level', 'risk_level', 'riskLevel');
-                      const zone = pick(item, 'zone', 'zoneH3', 'h3Index', 'h3_zone', 'area', 'location', 'deploymentPoint', 'deployment_point');
-                      // Nested programs array (routing_plan format)
-                      const nestedPrograms: any[] = Array.isArray(item.programs) ? item.programs : (Array.isArray(item.activities) ? item.activities : []);
-                      const itemHandled = new Set(['name', 'title', 'program', 'type', 'intervention', 'recommendedIntervention', 'deployment_point', 'deploymentPoint', 'description', 'text', 'details', 'rationale', 'summary', 'notes', 'targetPopulation', 'target', 'audience', 'participants', 'estimatedCost', 'estimated_cost', 'cost', 'budget', 'amount', 'provider', 'organization', 'agency', 'partner', 'timeSlot', 'time_slot', 'timeSlots', 'schedule', 'time', 'urgency', 'priority', 'level', 'risk_level', 'riskLevel', 'zone', 'zoneH3', 'h3Index', 'h3_zone', 'area', 'location', 'riskScore', 'programs', 'activities', 'latitude', 'longitude']);
-                      const extra = Object.entries(item).filter(([k, v]) => !itemHandled.has(k) && v != null && v !== '');
-                      return (
-                        <div key={i} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="text-sm font-semibold text-slate-200">{typeof title === 'string' ? sanitizeH3(title) : title}</h4>
-                                {urgency && (
-                                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${String(urgency).toLowerCase().includes('high') || String(urgency).toLowerCase().includes('critical') ? 'bg-red-500/20 text-red-400' : String(urgency).toLowerCase().includes('medium') ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-400'}`}>
-                                    {urgency}
+                    {/* Programs */}
+                    <div className="divide-y divide-slate-700/20">
+                      {zone.programs.map((prog, pi) => (
+                        <div key={pi} className="px-5 py-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              {/* Program name & type */}
+                              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                                <h5 className="text-sm font-semibold text-slate-200">{sanitizeH3(prog.program || `Program ${pi + 1}`)}</h5>
+                                {prog.type && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-md bg-youthshield-500/10 text-youthshield-400 font-medium border border-youthshield-500/20">
+                                    {prog.type}
+                                  </span>
+                                )}
+                                {prog.urgency && (
+                                  <span className={`text-[11px] px-2 py-0.5 rounded-md font-medium border ${riskColor(prog.urgency)}`}>
+                                    {prog.urgency}
                                   </span>
                                 )}
                               </div>
-                              {provider && <p className="text-sm text-youthshield-400 mt-1">{sanitizeH3(String(provider))}</p>}
-                              {desc && <p className="text-sm text-slate-400 mt-1 leading-relaxed">{sanitizeH3(String(desc))}</p>}
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                                {zone && <span className="text-xs text-slate-500"><span className="font-medium">Zone:</span> {isH3Hex(String(zone)) ? sanitizeH3(String(zone)) : zone}</span>}
-                                {timeSlot && <span className="text-xs text-slate-500"><span className="font-medium">Time:</span> {timeSlot}</span>}
-                                {target && <span className="text-xs text-youthshield-400/70"><span className="font-medium">Target:</span> {sanitizeH3(String(target))}</span>}
+
+                              {/* Metadata row */}
+                              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1">
+                                {prog.deploymentPoint && (
+                                  <span className="text-xs text-slate-400 flex items-center gap-1">
+                                    <Building2 className="w-3 h-3 text-slate-500" />
+                                    {prog.deploymentPoint}
+                                  </span>
+                                )}
+                                {prog.timeSlot && (
+                                  <span className="text-xs text-slate-400 flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-slate-500" />
+                                    {prog.timeSlot}
+                                  </span>
+                                )}
+                                {prog.distance && (
+                                  <span className="text-xs text-slate-400 flex items-center gap-1">
+                                    <MapPin className="w-3 h-3 text-slate-500" />
+                                    {prog.distance}
+                                  </span>
+                                )}
                               </div>
-                              {/* Nested programs (routing_plan format) */}
-                              {nestedPrograms.length > 0 && (
-                                <div className="mt-3 space-y-2">
-                                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Programs ({nestedPrograms.length})</p>
-                                  {nestedPrograms.map((pr: any, j: number) => (
-                                    <div key={j} className="flex items-start gap-2 pl-2 border-l-2 border-youthshield-500/30">
-                                      <div className="min-w-0">
-                                        <span className="text-xs font-medium text-youthshield-400">{pr.provider ?? pr.organization ?? `Provider ${j + 1}`}</span>
-                                        {(pr.activity ?? pr.description) && <p className="text-xs text-slate-400 mt-0.5">{pr.activity ?? pr.description}</p>}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+
+                              {/* Provider notes */}
+                              {prog.providerNotes && (
+                                <p className="text-xs text-slate-400 mt-2 leading-relaxed bg-slate-800/30 rounded-lg px-3 py-2 border border-slate-700/20">
+                                  {prog.providerNotes}
+                                </p>
                               )}
-                              {extra.length > 0 && (
-                                <div className="mt-2 space-y-0.5">
-                                  {extra.map(([k, v]) => (
-                                    <div key={k} className="text-sm">
-                                      <span className="text-slate-500 font-medium">{labelify(k)}: </span>
-                                      <span className="text-slate-300">{typeof v === 'object' ? <SmartValue label={k} value={v} /> : sanitizeH3(String(v))}</span>
-                                    </div>
-                                  ))}
-                                </div>
+
+                              {/* Alternative */}
+                              {prog.alternativeProvider && (
+                                <p className="text-xs text-slate-500 mt-1.5">
+                                  <span className="font-medium">Alternative:</span> {sanitizeH3(prog.alternativeProvider)}
+                                </p>
                               )}
                             </div>
-                            {cost && (
-                              <div className="text-right flex-shrink-0">
-                                <div className="text-sm font-bold text-amber-400">{typeof cost === 'number' ? formatCurrency(cost) : cost}</div>
-                              </div>
-                            )}
                           </div>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-
-              {/* Cost Breakdown Chart */}
-              {breakdown && typeof breakdown === 'object' && !Array.isArray(breakdown) && (
-                <div className="glass-card p-6">
-                  <h3 className="text-sm font-semibold text-slate-300 mb-4">Cost Breakdown</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={Object.entries(breakdown).map(([k, v]) => ({ name: labelify(k), value: v }))}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                      <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                      <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 8 }} formatter={(v: any) => formatCurrency(v)} />
-                      <Bar dataKey="value" fill="#a855f7" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+                ))}
+              </div>
 
               {/* Coverage Gaps */}
-              {coverageGaps.length > 0 && (
-                <div className="glass-card p-6 border-l-4 border-l-amber-500 bg-amber-500/5">
-                  <h3 className="text-sm font-semibold text-amber-400 mb-3">Coverage Gaps & Risk Areas</h3>
+              {result.coverageGaps.length > 0 && (
+                <div className="glass-card p-5 border-l-4 border-l-amber-500">
+                  <h3 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Coverage Gaps
+                  </h3>
                   <div className="space-y-2">
-                    {coverageGaps.map((g: any, i: number) => (
+                    {result.coverageGaps.map((g, i) => (
                       <div key={i} className="flex items-start gap-2">
-                        <span className="text-amber-500 mt-0.5">⚠</span>
-                        <p className="text-sm text-slate-300">{typeof g === 'string' ? g : (pick(g, 'text', 'description', 'area', 'gap', 'name') || smartText(g))}</p>
+                        <span className="text-amber-500 mt-0.5 text-xs">●</span>
+                        <p className="text-sm text-slate-300">{sanitizeH3(g)}</p>
                       </div>
                     ))}
                   </div>
@@ -341,23 +359,32 @@ export default function InterventionPage() {
               )}
 
               {/* Coordination Notes */}
-              {coordination && (
-                <div className="glass-card p-6 border-l-4 border-l-blue-500">
-                  <h3 className="text-sm font-semibold text-blue-300 mb-2">Coordination Notes</h3>
-                  <Markdown size="sm">{typeof coordination === 'string' ? coordination : smartText(coordination)}</Markdown>
+              {result.coordinationNotes && (
+                <div className="glass-card p-5 border-l-4 border-l-youthshield-500">
+                  <h3 className="text-sm font-semibold text-youthshield-300 mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Coordination Notes
+                  </h3>
+                  <Markdown size="sm">{result.coordinationNotes}</Markdown>
                 </div>
               )}
 
-              {/* Justification / Narrative */}
-              {justification && (
-                <div className="glass-card p-6 border-l-4 border-l-youthshield-500">
-                  <h3 className="text-sm font-semibold text-youthshield-300 mb-2">AI Analysis & Justification</h3>
-                  <Markdown size="sm">{typeof justification === 'string' ? justification : smartText(justification)}</Markdown>
+              {/* Provider Summary */}
+              {result.uniqueProviders.length > 0 && (
+                <div className="glass-card p-5">
+                  <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-youthshield-400" />
+                    Engaged Providers ({result.uniqueProviders.length})
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {result.uniqueProviders.map((p, i) => (
+                      <span key={i} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-youthshield-500/10 text-youthshield-400 border border-youthshield-500/20">
+                        {sanitizeH3(p)}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              {/* ★ ADAPTIVE FALLBACK — renders ALL unhandled fields ★ */}
-              <AdaptiveRenderer data={d} excludeKeys={handledKeys} title="Additional Analysis Details" />
             </>
           ) : (
             <div className="glass-card p-16 flex flex-col items-center justify-center text-center h-full min-h-[400px]">
@@ -365,7 +392,7 @@ export default function InterventionPage() {
                 <Shield className="w-10 h-10 text-youthshield-500/30" />
               </div>
               <h3 className="text-lg font-semibold text-slate-400 mb-1">Design an Intervention</h3>
-              <p className="text-sm text-slate-500 max-w-sm">Select a target zone and intervention type, then run the model to see projected outcomes and implementation plan.</p>
+              <p className="text-sm text-slate-500 max-w-sm">Select a target zone and intervention type, then run the model to see AI-routed programs, providers, and deployment plans.</p>
             </div>
           )}
         </div>
