@@ -46,6 +46,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [demoLoading, setDemoLoading] = useState<string | null>(null);
+  const [showRecommendation, setShowRecommendation] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +70,55 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-950 flex">
+    <div className="min-h-screen bg-navy-950 flex relative">
+      {/* Recommendation Popup */}
+      {showRecommendation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="glass-card max-w-sm w-full p-8 text-center animate-slide-up border-amber-500/50 relative">
+            <button 
+              onClick={() => setShowRecommendation(false)}
+              className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              ✕
+            </button>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-amber-500/20 rotate-3">
+              <Crown className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-display font-bold text-white mb-3">Welcome to Montgomery</h3>
+            <p className="text-slate-400 text-sm leading-relaxed mb-8">
+              To experience the full potential of the Command Center, we recommend logging in as an 
+              <span className="text-amber-400 font-semibold"> Executive</span>. 
+              This grants you access to all AI briefings, sensitive data, and city-wide insights.
+            </p>
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  handleDemoLogin(DEMO_ACCOUNTS[0]);
+                  setShowRecommendation(false);
+                }}
+                disabled={loading || demoLoading !== null}
+                className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 group"
+              >
+                {demoLoading === 'EXECUTIVE' ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+                    <span>Quick Access: Executive Mode</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowRecommendation(false)}
+                className="text-slate-500 hover:text-slate-300 text-xs font-medium uppercase tracking-widest transition-colors"
+              >
+                Choose another role
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Left - Branding */}
       <div className="hidden lg:flex flex-1 flex-col justify-center items-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-red-500/10" />
